@@ -55,7 +55,7 @@ class MembershipCardController extends Controller
 
             $churchLogoPath = Auth::user()->ChurchLogo['meta_value'] != '-'
                 ? Auth::user()->ChurchLogoPath
-                : url('images/church_cms_logo.jpg');
+                : url('uploads/brand/igm-church-logo.png');
             $churchLogoSource = $this->toPdfImageSrc($churchLogoPath);
 
             $array['avatarSource'] = $avatarSource;

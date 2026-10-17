@@ -367,7 +367,7 @@
                         </div>
                         <div class="mb-2" id="avatar_preview_wrap" style="{{ $tempAvatar ? 'display:block' : 'display:none' }}">
                             <img id="avatar_preview"
-                                 src="{{ $tempAvatar ? asset('storage/'.$tempAvatar) : '' }}"
+                                 src="{{ $tempAvatar ? app(\App\Support\PublicFileUrl::class)->resolve($tempAvatar) : '' }}"
                                  alt="Avatar Preview" class="w-24 h-24 rounded-full object-cover border">
                         </div>
                         @error('avatar')<span class="text-red-500 text-xs font-semibold">{{ $message }}</span>@enderror

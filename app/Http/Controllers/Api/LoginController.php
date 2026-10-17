@@ -149,33 +149,27 @@ class LoginController extends Controller
                 ref: '#/components/responses/LogoutAllResponse'
             )
         ],
-
+        security: [['sanctum' => []]]
     )]
     public function logoutDevices(Request $request)
     {
-
-
         try {
-            $user = User::where([['mobile_no', $request->email], ['device_id', '!=', null], ['usergroup_id', 5]])->first();
+            $user = $request->user();
+            $user->tokens()->delete();
+            $user->platform_token = null;
+            $user->device_id = null;
+            $user->save();
 
-            if ($user != null) {
-
-                $user->tokens()->delete();
-
-                $user->platform_token  = NULL;
-
-                $user->device_id = NULL;
-
-                $user->save();
-
-                return response()->json([
-                    'success'   =>  true,
-                    'message'   =>  'Logged out from all devices'
-                ], 200);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Logged out from all devices',
+            ], 200);
         } catch (Exception $e) {
             Log::info($e->getMessage());
-            //dd($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to log out from all devices',
+            ], 500);
         }
     }
 }

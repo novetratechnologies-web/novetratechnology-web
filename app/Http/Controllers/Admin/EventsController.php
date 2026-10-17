@@ -59,26 +59,60 @@ class EventsController extends Controller
     {
         $filter   = request('filter', 'all');
         $category = request('category', '');
+        $search   = trim((string) request('q', ''));
         $now      = now();
 
-        $query = Events::where('church_id', Auth::user()->church_id);
+        $baseQuery = Events::where('church_id', Auth::user()->church_id);
+        $counts = [
+            'all' => (clone $baseQuery)->count(),
+            'upcoming' => (clone $baseQuery)->where('start_date', '>=', $now)->count(),
+            'ongoing' => (clone $baseQuery)->where('start_date', '<=', $now)->where('end_date', '>=', $now)->count(),
+            'completed' => (clone $baseQuery)->where('end_date', '<', $now)->count(),
+        ];
+
+        if (!array_key_exists($filter, $counts)) {
+            $filter = 'all';
+        }
+
+        $query = clone $baseQuery;
 
         if ($filter === 'upcoming') {
-            $query->where('start_date', '>=', $now)->orderBy('start_date', 'desc');
+            $query->where('start_date', '>=', $now)->orderBy('start_date');
+        } elseif ($filter === 'ongoing') {
+            $query->where('start_date', '<=', $now)->where('end_date', '>=', $now)->orderBy('start_date');
         } elseif ($filter === 'completed') {
             $query->where('end_date', '<', $now)->orderBy('start_date', 'desc');
         } else {
-            $query->orderBy('start_date', 'desc');
+            $query->orderByRaw('CASE WHEN start_date >= ? THEN 0 ELSE 1 END', [$now])
+                ->orderByRaw('CASE WHEN start_date >= ? THEN start_date END ASC', [$now])
+                ->orderByRaw('CASE WHEN start_date < ? THEN start_date END DESC', [$now]);
         }
 
         if ($category !== '') {
             $query->where('category', $category);
         }
 
-        $events = $query->paginate(15)->withQueryString();
+        if ($search !== '') {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhere('location', 'like', '%' . $search . '%')
+                    ->orWhere('organised_by', 'like', '%' . $search . '%');
+            });
+        }
+
+        $events = $query->paginate(12)->withQueryString();
         $count  = $events->total();
 
-        return view('admin.events.index', compact('events', 'count', 'filter', 'category'));
+        $categories = [
+            'Culturals' => 'Culturals',
+            'Education' => 'Education',
+            'Meeting' => 'Meeting',
+            'prayer' => 'Prayer',
+            'sermon' => 'Sermon',
+        ];
+
+        return view('admin.events.index', compact('events', 'count', 'filter', 'category', 'search', 'counts', 'categories'));
     }
 
     public function editForm($id)
@@ -135,6 +169,13 @@ class EventsController extends Controller
             'event_date'   => 'required|date',
             'start_time'   => 'required',
             'duration'     => 'required',
+            'video_url'    => ['nullable', 'url', 'max:2048', function ($attribute, $value, $fail) {
+                if (!$value) return;
+                $host = strtolower(parse_url($value, PHP_URL_HOST) ?: '');
+                if (!in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
+                    $fail('Use a YouTube video, live, or short URL.');
+                }
+            }],
         ];
         if ($request->schedule === '1') {
             $rules['freq']            = 'required|integer|min:1';
@@ -168,6 +209,7 @@ class EventsController extends Controller
             $event->location          = $request->location;
             $event->category          = $request->category;
             $event->organised_by      = $request->organised_by;
+            $event->video_url         = $request->input('video_url');
             $event->start_date        = $startDateTime;
             $event->end_date          = $endDateTime;
             $event->publish_to_web       = $request->boolean('publish_to_web', false);
@@ -350,6 +392,7 @@ class EventsController extends Controller
                 $event->location          = $request->location;
                 $event->category          = $request->category;
                 $event->organised_by      = $request->organised_by;
+                $event->video_url         = $request->input('video_url');
 
                 $event->start_date        = $startDateTime;
                 $event->end_date          = $endDateTime;
@@ -405,14 +448,12 @@ class EventsController extends Controller
                     strtotime('-2 days', strtotime($event->start_date))
                 );
 
-                $this->sendToReminderEvent(
-                    $event,
-                    $reminderDate,
-                    'first'
-                );
+                if (Carbon::parse($event->start_date)->isFuture()) {
+                    $this->sendToReminderEvent($event, $reminderDate, 'first');
+                }
 
                 // MAIL
-                if (env('MAIL_STATUS') === 'on') {
+                if (Carbon::parse($event->start_date)->isFuture() && env('MAIL_STATUS') === 'on') {
                     event(new CalendarEvent($event));
                 }
 
@@ -423,7 +464,7 @@ class EventsController extends Controller
                     'type'      => 'event'
                 ];
 
-                event(new PushEvent($data));
+                if (Carbon::parse($event->start_date)->isFuture()) event(new PushEvent($data));
 
                 $array = [
                     'church_id' => Auth::user()->church_id,
@@ -432,7 +473,7 @@ class EventsController extends Controller
                     'message_id' => $event->id
                 ];
 
-                event(new PushNotificationEvent($array));
+                if (Carbon::parse($event->start_date)->isFuture()) event(new PushNotificationEvent($array));
 
                 // LOG
                 $ip = $this->getRequestIP();
@@ -666,6 +707,7 @@ class EventsController extends Controller
         $event->location          = $request->location;
         $event->category          = $request->category;
         $event->organised_by      = $request->organised_by;
+        $event->video_url         = $request->input('video_url');
 
         $event->start_date        = $startDateTime;
         $event->end_date          = $endDateTime;
@@ -754,6 +796,7 @@ class EventsController extends Controller
             $events->location        = $request->location;
             $events->category       = $request->category;
             $events->organised_by      = $request->organised_by;
+            $events->video_url      = $request->input('video_url');
             $events->publish_to_web    = $request->boolean('publish_to_web', true);
             $events->enable_gallery    = $request->boolean('enable_gallery', true);
             $events->enable_attendance = $request->boolean('enable_attendance', false);

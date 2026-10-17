@@ -10,7 +10,7 @@
         <div class="modal-container w-full max-w-lg px-8 mx-auto">
 
           <div class="modal-header flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">Edit Chapter</h2>
+            <div><h2 class="text-lg font-bold">Edit sermon resource</h2><p class="mt-1 text-xs text-gray-500">Update the recording, audio, or study file for this message.</p></div>
             <button class="text-2xl leading-none" @click="closeModal()">&times;</button>
           </div>
 
@@ -39,6 +39,7 @@
               <label class="tw-form-label w-28 pt-1 shrink-0">Video URL</label>
               <div class="flex-1">
                 <input type="url" v-model="video_link" class="tw-form-control w-full" placeholder="https://youtube.com/...">
+                <p class="mt-1 text-xs text-gray-500">Paste a YouTube or Vimeo watch link, or a direct MP4 URL.</p>
                 <p v-if="errors.video_link" class="text-red-500 text-xs mt-1">{{ errors.video_link[0] }}</p>
               </div>
             </div>
@@ -48,13 +49,14 @@
               <label class="tw-form-label w-28 pt-1 shrink-0">Audio URL</label>
               <div class="flex-1">
                 <input type="url" v-model="audio_link" class="tw-form-control w-full" placeholder="https://soundcloud.com/...">
+                <p class="mt-1 text-xs text-gray-500">Paste an audio file or hosted audio link.</p>
                 <p v-if="errors.audio_link" class="text-red-500 text-xs mt-1">{{ errors.audio_link[0] }}</p>
               </div>
             </div>
 
             <!-- PDF — show existing, allow re-upload -->
             <div class="my-3 flex items-start gap-3">
-              <label class="tw-form-label w-28 pt-1 shrink-0">PDF / Doc</label>
+              <label class="tw-form-label w-28 pt-1 shrink-0">Study file</label>
               <div class="flex-1">
                 <a v-if="pdf_link" :href="pdf_link" target="_blank"
                    class="text-xs text-blue-600 underline block mb-1">Current file (click to view)</a>
@@ -177,9 +179,16 @@ export default {
   margin: 0 auto;
   padding: 20px 30px;
   background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .33);
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(3, 20, 36, .3);
+  border: 1px solid #e5eaf0;
   height: auto;
   overflow: auto;
 }
+.modal-header { border-bottom: 1px solid #edf0f3; padding-bottom: 14px; color: #082846; }
+.modal-header button { width: 34px; height: 34px; border-radius: 9px; color: #68798a; background: #f4f6f8; }
+.modal-body .tw-form-label { font-size: 12px; font-weight: 700; color: #41566a; }
+.modal-body .tw-form-control { border-color: #d9e0e6; border-radius: 9px; padding: 10px 12px; font-size: 13px; }
+.modal-body .btn-primary { background: #082846; }
+@media (max-width: 600px) { .modal-container { padding: 19px 17px; border-radius: 14px; max-height: 90vh; } .modal-body .my-3.flex { display: block; } .modal-body .tw-form-label { display:block; width:auto; margin-bottom:7px; } }
 </style>

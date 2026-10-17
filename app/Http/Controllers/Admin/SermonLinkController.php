@@ -42,6 +42,13 @@ class SermonLinkController extends Controller
 
     public function store(SermonLinkRequest $request, $sermons_id)
     {
+        $parentSermon = Sermon::where('id', $sermons_id)
+            ->where('church_id', Auth::user()->church_id)
+            ->firstOrFail();
+        if (!Gate::allows('sermon', $parentSermon)) {
+            abort(403);
+        }
+
         try {
             $sermon             = new SermonLink;
             $sermon->church_id  = Auth::user()->church_id;
@@ -113,7 +120,7 @@ class SermonLinkController extends Controller
 
     public function edit($id)
     {
-        $sermon = SermonLink::where('id', $id)->get();
+        $sermon = SermonLink::where('id', $id)->where('church_id', Auth::user()->church_id)->get();
         return EditSermonLinkResource::collection($sermon);
     }
 
@@ -125,7 +132,7 @@ class SermonLinkController extends Controller
     public function update(SermonLinkUpdateRequest $request, $id)
     {
         try {
-            $links             = SermonLink::where('id', $id)->firstOrFail();
+            $links             = SermonLink::where('id', $id)->where('church_id', Auth::user()->church_id)->firstOrFail();
             $links->title      = $request->title;
             $links->date       = date('Y-m-d', strtotime($request->date));
             $links->video_link = $request->video_link ?: null;
@@ -157,7 +164,7 @@ class SermonLinkController extends Controller
     public function destroy($id)
     {
         try {
-            $sermon = SermonLink::findOrFail($id);
+            $sermon = SermonLink::where('id', $id)->where('church_id', Auth::user()->church_id)->firstOrFail();
             $sermon->delete();
 
             $message = 'Sermonlink deleted';

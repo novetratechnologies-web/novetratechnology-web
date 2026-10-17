@@ -1,84 +1,24 @@
-<div class="w-full">
-    <div class="flex justify-between items-center mb-2">
-        <h1 class="text-sm uppercase text-gray-800 font-semibold">
-            Events Attendance
-        </h1>
-
-        <a href="{{ url('/admin/events') }}" class="text-xs underline">
-            See All
-        </a>
-    </div>
-
-    <div class="w-full bg-white rounded shadow dashboard-content">
-        <div class="p-2">
-
-            @forelse($dashboard['EventAttendance'] as $event)
-
+<section class="cd-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-blue"><i class="fas fa-chart-column"></i></span><div><h3>Service attendance</h3><p>Recent attendance sessions</p></div></div><a href="{{ url('/admin/events') }}" class="cd-heading-link">All events <i class="fas fa-arrow-right"></i></a></header>
+    @php
+        $totalChurchMembers = App\Models\User::where('church_id', auth()->user()->church_id)->ByRole('5')->whereHas('userprofile', function ($query) {
+            $query->where('membership_type', 'member')->orWhereNull('membership_type');
+        })->count();
+    @endphp
+    <div class="cd-attendance-list">
+        @forelse($dashboard['EventAttendance'] as $session)
             @php
-            $total_attendees = App\Models\User::where('church_id', $event->church_id)
-            ->ByRole('5')
-            ->whereHas('userprofile', function ($q) {
-            $q->where('membership_type', 'member')
-            ->orWhereNull('membership_type');
-            })
-            ->count();
-
-            $present_attendees = count($event->attendees);
-            $absent_attendees = $total_attendees - $present_attendees;
+                $presentCount = $session->attendees->count();
+                $absentCount = max(0, $totalChurchMembers - $presentCount);
+                $attendancePercent = $totalChurchMembers > 0 ? min(100, (int) round(($presentCount / $totalChurchMembers) * 100)) : 0;
             @endphp
-
-            <div class="mt-3 bg-gray-100 border-l-4 border-teal-400 rounded p-3">
-                <div class="flex">
-
-                    <!-- Left -->
-                    <div class="w-32 text-center border-r border-gray-300 pr-3">
-                        <p class="text-xs font-bold text-gray-600">
-                            {{ $event->attendance_date }}
-                        </p>
-
-                        <div class="mt-2 text-xs leading-5">
-                            <p>
-                                <span class="font-semibold">Total:</span>
-                                {{ $total_attendees }}
-                            </p>
-
-                            <p class="text-green-600">
-                                <span class="font-semibold">Present:</span>
-                                {{ $present_attendees }}
-                            </p>
-
-                            <p class="text-red-600">
-                                <span class="font-semibold">Absent:</span>
-                                {{ $absent_attendees }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Right -->
-                    <div class="flex-1 pl-4 flex flex-col justify-center">
-                        <a href="{{ url('/admin/events/attendance/session/' . $event->id) }}"
-                            class="text-base font-semibold text-gray-900 hover:text-teal-600">
-                            {{ $event->event->title }}
-                        </a>
-
-                        <p class="text-sm text-gray-600 mt-1">
-                            {{ $event->event->category }}
-                        </p>
-                    </div>
-
-                </div>
-            </div>
-
-            @empty
-
-            <div class="py-6 text-center">
-                <p class="text-sm font-semibold text-gray-500">
-                    No Records Found
-                </p>
-            </div>
-
-            @endforelse
-
-        </div>
+            <a class="cd-attendance-row" href="{{ url('/admin/events/attendance/session/' . $session->id) }}">
+                <div class="cd-attendance-date"><strong>{{ \Carbon\Carbon::parse($session->attendance_date)->format('d') }}</strong><span>{{ \Carbon\Carbon::parse($session->attendance_date)->format('M') }}</span></div>
+                <div class="cd-attendance-main"><div class="cd-attendance-title"><strong>{{ $session->event?->title ?: 'Church service' }}</strong><time>{{ \Carbon\Carbon::parse($session->attendance_date)->format('D, M j, Y') }}</time></div><div class="cd-progress"><span style="width: {{ $attendancePercent }}%"></span></div><div class="cd-attendance-stats"><span><i class="fas fa-circle-check"></i>{{ $presentCount }} present</span><span>{{ $absentCount }} absent</span><b>{{ $attendancePercent }}%</b></div></div>
+                <i class="fas fa-chevron-right cd-attendance-arrow"></i>
+            </a>
+        @empty
+            <div class="cd-component-empty"><span><i class="fas fa-chart-column"></i></span><strong>No attendance sessions yet</strong><small>Recorded service attendance will appear here.</small></div>
+        @endforelse
     </div>
-</div>
+</section>

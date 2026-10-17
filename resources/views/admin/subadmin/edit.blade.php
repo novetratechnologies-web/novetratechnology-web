@@ -14,6 +14,14 @@
             @include('partials.message')
             <form method="POST" action="{{ url('/admin/subadmin/edit/' . $user->name) }}" enctype="multipart/form-data">
                 @csrf
+                <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <label for="branch_id" class="tw-form-label">Assigned branch <span class="text-red-500">*</span></label>
+                    <p class="mb-2 text-xs text-gray-500">Content created by this staff account will be associated with its assigned branch.</p>
+                    <select id="branch_id" name="branch_id" required class="tw-form-control w-full max-w-xl @error('branch_id') border-red-400 @enderror">
+                        @foreach($branches as $branch)<option value="{{ $branch->id }}" @selected((string)old('branch_id', $user->branch_id) === (string)$branch->id)>{{ $branch->name }}{{ $branch->is_headquarters ? ' · Headquarters' : '' }}</option>@endforeach
+                    </select>
+                    @error('branch_id')<p class="tw-form-error">{{ $message }}</p>@enderror
+                </div>
                 <edit-subadmin url="{{ url('/') }}" name="{{ $user->name }}"></edit-subadmin>
                 <portal to="edit_address">
                     <div class="flex">

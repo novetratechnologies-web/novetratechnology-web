@@ -1,76 +1,88 @@
 @extends('layouts.admin.layout')
 
 @section('content')
-@php $isAdmin = auth()->user()->usergroup_id == 3; @endphp
-<!-- start -->
-<div class="flex flex-col lg:flex-row my-4">
-    <div class="w-full">
-        @if($isAdmin)
-        {{-- Full admin dashboard --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-5">
-            @include('admin.dashboard._partials.__total_members')
-            @include('admin.dashboard._partials.__total_guests')
-            @include('admin.dashboard._partials.__search_box')
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            @include('admin.dashboard._partials.__statistics')
-            @include('admin.dashboard._partials.__recently_added_members')
-            @include('admin.dashboard._partials.__birthday')
-            @include('admin.dashboard._partials.__anniversary')
-            <!-- @include('admin.dashboard._partials.__upcoming_events') -->
-            @include('admin.dashboard._partials._event_attendance')
-            @include('admin.dashboard._partials.__pending_prayers')
-            @include('admin.dashboard._partials.__pending_helps')
-            @include('admin.dashboard._partials.__latest_sermons')
-            @include('admin.dashboard._partials.__offerings')
+@php
+    $dashboardUser = auth()->user();
+    $isAdmin = (int) $dashboardUser->usergroup_id === 3;
+@endphp
 
+<main class="church-dashboard">
+    <section class="cd-welcome">
+        <div class="cd-welcome-copy">
+            <span class="cd-kicker"><span></span> IGM CHURCH · ADMIN OVERVIEW</span>
+            <h1>Welcome back, {{ $dashboardUser->userprofile?->firstname ?: $dashboardUser->name }}</h1>
+            <p>Here’s what’s happening in your church today.</p>
         </div>
-        @else
-        {{-- Sub-admin dashboard: welcome widget only --}}
-        <div class="grid grid-cols-1 gap-8">
-            @include('admin.dashboard._partials.__welcome')
+        <div class="cd-welcome-right">
+            <div class="cd-date"><i class="far fa-calendar"></i>{{ now()->format('l, F j, Y') }}</div>
+            @if($isAdmin)
+                <nav class="cd-quick-actions" aria-label="Quick actions">
+                    <a href="{{ url('/admin/member/add') }}"><i class="fas fa-user-plus"></i><span>Add member</span></a>
+                    <a href="{{ url('/admin/events') }}"><i class="fas fa-calendar-plus"></i><span>Events</span></a>
+                    <a href="{{ url('/admin/communications') }}"><i class="fas fa-paper-plane"></i><span>Message people</span></a>
+                </nav>
+            @endif
         </div>
-        @endif
-    </div>
-</div>
-<!-- end -->
-@endsection
+        <div class="cd-decoration cd-decoration-one"></div><div class="cd-decoration cd-decoration-two"></div>
+    </section>
 
-@push('scripts')
-@if(auth()->user()->usergroup_id == 3)
-<script>
-    var final = <?php echo json_encode($dashboard['final']); ?>;
-    if (final.length == 0) {
-        $('#chartContainer').append(
-            '<div class="w-full my-2 relative"><div class="px-2"><h2 class="font-bold text-base text-gray-700">No Records Found</h2></div></div>'
-        );
-    } else {
-        window.onload = function() {
-            var chart = new CanvasJS.Chart("chartContainer", {
-                animationEnabled: true,
-                height: 280,
-                width: 290,
-                title: {
-                    text: ""
-                },
-                axisY: {
-                    title: "",
-                    valueFormatString: "",
-                    suffix: "",
-                    prefix: ""
-                },
-                data: [{
-                    type: "column",
-                    color: "rgba(54,158,173,.7)",
-                    markerSize: 5,
-                    xValueFormatString: "",
-                    yValueFormatString: "Rs #,##0.##",
-                    dataPoints: <?php echo json_encode($dashboard['final'], JSON_NUMERIC_CHECK); ?>
-                }]
-            });
-            chart.render();
-        }
-    }
-</script>
-@endif
+    @if($isAdmin)
+        <section class="cd-metrics" aria-label="Church summary">
+            <a href="{{ url('/admin/members') }}" class="cd-metric cd-metric-members">
+                <span class="cd-metric-icon"><i class="fas fa-users"></i></span><span class="cd-metric-copy"><small>Active members</small><strong>{{ number_format($dashboard['memberCount']) }}</strong><em>{{ number_format($dashboard['maleMemberCount']) }} men <b>·</b> {{ number_format($dashboard['femaleMemberCount']) }} women</em></span><i class="fas fa-arrow-up-right-from-square cd-metric-arrow"></i>
+            </a>
+            <a href="{{ url('/admin/guests') }}" class="cd-metric cd-metric-guests">
+                <span class="cd-metric-icon"><i class="fas fa-user-group"></i></span><span class="cd-metric-copy"><small>Guests</small><strong>{{ number_format($dashboard['guestCount']) }}</strong><em>{{ number_format($dashboard['maleGuestCount']) }} men <b>·</b> {{ number_format($dashboard['femaleGuestCount']) }} women</em></span><i class="fas fa-arrow-up-right-from-square cd-metric-arrow"></i>
+            </a>
+            <a href="{{ url('/admin/events') }}" class="cd-metric cd-metric-events">
+                <span class="cd-metric-icon"><i class="fas fa-calendar-days"></i></span><span class="cd-metric-copy"><small>Events</small><strong>{{ number_format($dashboard['eventCount']) }}</strong><em>Church events</em></span><i class="fas fa-arrow-up-right-from-square cd-metric-arrow"></i>
+            </a>
+            <a href="{{ url('/admin/funds') }}" class="cd-metric cd-metric-giving">
+                <span class="cd-metric-icon"><i class="fas fa-hand-holding-heart"></i></span><span class="cd-metric-copy"><small>Total offerings</small><strong>{{ number_format($dashboard['total_fund'], 0) }}</strong><em>Recorded giving</em></span><i class="fas fa-arrow-up-right-from-square cd-metric-arrow"></i>
+            </a>
+        </section>
+
+        <div class="cd-section-heading"><div><span class="cd-section-kicker">YOUR COMMUNITY</span><h2>People &amp; connection</h2></div><a href="{{ url('/admin/members') }}">Open member directory <i class="fas fa-arrow-right"></i></a></div>
+        <section class="cd-grid cd-grid-people">
+            <div class="cd-widget cd-widget-wide">@include('admin.dashboard._partials.__recently_added_members')</div>
+            <div class="cd-widget">@include('admin.dashboard._partials.__birthday')</div>
+            <div class="cd-widget">@include('admin.dashboard._partials.__anniversary')</div>
+        </section>
+
+        <div class="cd-section-heading cd-section-followup"><div><span class="cd-section-kicker">FOLLOW UP</span><h2>Requests &amp; attendance</h2></div><span class="cd-section-hint">Items that may need your attention</span></div>
+        <section class="cd-grid cd-grid-followup">
+            <div class="cd-widget cd-widget-prayers">@include('admin.dashboard._partials.__pending_prayers')</div>
+            <div class="cd-widget cd-widget-help">@include('admin.dashboard._partials.__pending_helps')</div>
+            <div class="cd-widget cd-widget-attendance">@include('admin.dashboard._partials._event_attendance')</div>
+        </section>
+
+        <div class="cd-section-heading cd-section-resources"><div><span class="cd-section-kicker">CHURCH OPERATIONS</span><h2>Giving &amp; ministry resources</h2></div></div>
+        <section class="cd-grid cd-grid-resources">
+            <div class="cd-widget cd-widget-finance">@include('admin.dashboard._partials.__offerings')</div>
+            <div class="cd-widget cd-widget-sermons">@include('admin.dashboard._partials.__latest_sermons')</div>
+        </section>
+    @else
+        <section class="cd-subadmin">@include('admin.dashboard._partials.__welcome')</section>
+    @endif
+</main>
+
+@push('styles')
+<style>
+    .church-dashboard{--cd-ink:#172d3b;--cd-muted:#788b96;--cd-line:#e6edf0;--cd-teal:#087f70;color:var(--cd-ink);padding:5px 0 30px}
+    .church-dashboard *{box-sizing:border-box}
+    .cd-welcome{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:25px 28px;margin:0 0 17px;border-radius:16px;background:linear-gradient(112deg,#103a45 0%,#0c625c 52%,#0c8270 100%);color:white;box-shadow:0 10px 25px #12463e22}
+    .cd-welcome-copy,.cd-welcome-right{position:relative;z-index:1}.cd-kicker{display:flex;align-items:center;gap:8px;color:#b9e8dc;font-size:9px;font-weight:800;letter-spacing:.15em}.cd-kicker span{width:7px;height:7px;border-radius:50%;background:#5cdbb3;box-shadow:0 0 0 4px #ffffff19}.cd-welcome h1{font-size:25px;font-weight:750;letter-spacing:-.035em;line-height:1.25;color:#fff;margin:11px 0 5px}.cd-welcome p{font-size:12px;color:#d0e7e2;margin:0}.cd-welcome-right{display:flex;flex-direction:column;align-items:flex-end;gap:16px}.cd-date{color:#ddf2ed;font-size:11px;display:flex;align-items:center;gap:8px}.cd-quick-actions{display:flex;gap:7px}.cd-quick-actions a{height:34px;padding:0 11px;border:1px solid #ffffff36;border-radius:8px;background:#ffffff13;color:#fff;text-decoration:none;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:7px;transition:.15s}.cd-quick-actions a:hover{background:#ffffff25;transform:translateY(-1px)}.cd-quick-actions i{font-size:10px;color:#9de6d1}.cd-decoration{position:absolute;border:1px solid #ffffff13;border-radius:50%;pointer-events:none}.cd-decoration-one{width:235px;height:235px;right:29%;top:-160px}.cd-decoration-two{width:300px;height:300px;right:22%;top:-183px}
+    .cd-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:27px}.cd-metric{position:relative;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 14px;background:#fff;border:1px solid var(--cd-line);border-radius:12px;box-shadow:0 3px 12px #17364a08;text-decoration:none!important;transition:.18s}.cd-metric:hover{transform:translateY(-2px);box-shadow:0 8px 18px #17364a12;border-color:#d5e4e6}.cd-metric-icon{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:11px;font-size:15px}.cd-metric-members .cd-metric-icon{color:#087f70;background:#e7f6f1}.cd-metric-guests .cd-metric-icon{color:#5475ca;background:#edf1fc}.cd-metric-events .cd-metric-icon{color:#bf7b28;background:#fff4e6}.cd-metric-giving .cd-metric-icon{color:#8a67be;background:#f3effa}.cd-metric-copy{display:flex;flex-direction:column;min-width:0}.cd-metric-copy small{color:#778994;font-size:10px;font-weight:650}.cd-metric-copy strong{font-size:23px;line-height:1.25;letter-spacing:-.04em;color:#183341}.cd-metric-copy em{font-style:normal;color:#93a0a7;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-metric-copy em b{padding:0 3px;color:#c1cbd0}.cd-metric-arrow{position:absolute;right:12px;top:12px;color:#bac6ca;font-size:9px}
+    .cd-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 1px 11px}.cd-section-heading h2{margin:3px 0 0;color:#1c3542;font-size:16px;font-weight:750;letter-spacing:-.02em}.cd-section-kicker{color:#84959d;font-size:8px;font-weight:800;letter-spacing:.14em}.cd-section-heading>a{display:flex;align-items:center;gap:7px;color:#087f70;text-decoration:none;font-size:10px;font-weight:700}.cd-section-heading>a:hover{text-decoration:underline}.cd-section-heading>a i{font-size:9px}.cd-section-hint{color:#93a0a7;font-size:10px}.cd-grid{display:grid;gap:13px;align-items:stretch}.cd-grid-people{grid-template-columns:1.25fr 1fr 1fr;margin-bottom:25px}.cd-grid-followup{grid-template-columns:1fr 1fr 1.15fr;margin-bottom:25px}.cd-grid-resources{grid-template-columns:1.2fr 1fr}.cd-widget{min-width:0;padding:14px;background:#fff;border:1px solid var(--cd-line);border-radius:12px;box-shadow:0 3px 12px #17364a08}.cd-widget>div{width:100%}.cd-widget h1{margin:0 0 11px!important;color:#273e49!important;font-size:11px!important;font-weight:750!important;letter-spacing:.015em;text-transform:none!important}.cd-widget .dashboard-content{padding:0!important;background:transparent!important;border-radius:0!important;box-shadow:none!important}.cd-widget .dashboard-content>div,.cd-widget .dashboard-content ul{margin-top:0!important;box-shadow:none!important}.cd-widget-prayers,.cd-widget-help,.cd-widget-attendance,.cd-widget-finance,.cd-widget-sermons{align-self:stretch}.cd-widget-attendance .bg-gray-100{background:#f7f9fa!important;border:1px solid #edf1f2!important;border-left:3px solid #37a891!important;border-radius:8px!important}.cd-widget-attendance .mt-3{margin-top:8px!important}.cd-widget-finance .bg-yellow-300{background:#eef8f5!important;border-radius:8px!important;color:#176d60!important;font-size:11px;font-weight:750}.cd-widget-prayers .bg-yellow-50,.cd-widget-help .bg-red-50{background:#fafcfc!important;border:1px solid #edf1f2;border-left-width:3px!important;border-radius:8px!important}.cd-widget-prayers .bg-yellow-50{border-left-color:#e8ba5d!important}.cd-widget-help .bg-red-50{border-left-color:#e89191!important}.cd-widget .text-indigo-600{color:#087f70!important}.cd-widget .underline{text-decoration:none!important;color:#087f70!important;font-weight:700}.cd-widget .underline:hover{text-decoration:underline!important}.cd-widget-sermons .dashboard-content{min-height:100px}.cd-subadmin{max-width:900px}.cd-section-followup,.cd-section-resources{margin-top:0}
+    .cd-component{width:100%;min-width:0}.cd-component-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}.cd-component-heading>div{display:flex;align-items:center;gap:10px;min-width:0}.cd-component-heading h3{margin:0;color:#263e4a;font-size:12px;line-height:1.25;font-weight:750}.cd-component-heading p{margin:3px 0 0;color:#91a0a6;font-size:9px}.cd-component-heading>a:not(.cd-heading-link){width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#71848e;background:#f5f8f8;text-decoration:none;font-size:9px}.cd-component-heading>a:hover{color:#087f70;background:#eaf6f2}.cd-component-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;font-size:13px}.cd-icon-teal{color:#087f70;background:#e8f6f1}.cd-icon-gold{color:#b37b2b;background:#fff5e6}.cd-icon-rose{color:#c36c79;background:#fff0f1}.cd-icon-blue{color:#4b70bc;background:#eef2fc}.cd-icon-violet{color:#7c62b2;background:#f3effa}.cd-heading-link{display:inline-flex;align-items:center;gap:6px;color:#087f70;text-decoration:none;font-size:9px;font-weight:750;white-space:nowrap}.cd-heading-link i{font-size:8px}.cd-heading-link:hover{text-decoration:underline}
+    .cd-member-list,.cd-request-list,.cd-attendance-list,.cd-giving-list,.cd-sermon-list,.cd-vue-list{display:flex;flex-direction:column;gap:3px}.cd-member-row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid #f0f3f4;text-decoration:none!important;min-width:0}.cd-member-row:first-child{border-top:0}.cd-member-row>img{width:34px;height:34px;flex:0 0 34px;border-radius:50%;object-fit:cover;background:#edf2f3}.cd-member-name,.cd-giving-person{display:flex;flex-direction:column;min-width:0;flex:1}.cd-member-name strong,.cd-giving-person strong{color:#314852;font-size:10px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.cd-member-name small,.cd-giving-person small{margin-top:3px;color:#96a3a9;font-size:9px}.cd-member-row time{color:#98a5aa;font-size:9px;white-space:nowrap}.cd-member-row:hover .cd-member-name strong{color:#087f70}
+    .cd-component-empty{min-height:110px;padding:18px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.cd-component-empty>span{width:31px;height:31px;display:grid;place-items:center;margin-bottom:7px;border-radius:50%;background:#f1f6f5;color:#8ba39d;font-size:12px}.cd-component-empty strong{color:#657982;font-size:10px}.cd-component-empty small{margin-top:4px;color:#a0acb1;font-size:9px}.cd-vue-person{display:flex;align-items:center;gap:9px;padding:8px 1px;border-top:1px solid #f0f3f4}.cd-vue-person:first-child{border-top:0}.cd-vue-person>img{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#eef2f3}.cd-vue-person>a{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;text-decoration:none}.cd-vue-person>a strong{color:#314852;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-vue-person>a small{color:#98a5aa;font-size:9px}.cd-vue-person>a:hover strong,.cd-anniversary-person>a:hover{color:#087f70}.cd-vue-person>i{color:#d6a44f;font-size:11px}.cd-vue-action{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:8px;padding:8px;border-radius:8px;background:#f0f8f5;color:#087f70;text-decoration:none;font-size:9px;font-weight:750}.cd-vue-action:hover{background:#e4f4ee}.cd-anniversary-couple{display:flex;align-items:center;justify-content:space-around;gap:7px;padding:10px 2px;border-top:1px solid #f0f3f4}.cd-anniversary-couple:first-child{border-top:0}.cd-anniversary-person{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;max-width:45%}.cd-anniversary-person img{width:37px;height:37px;border-radius:50%;object-fit:cover;background:#eef2f3}.cd-anniversary-person>a{color:#435961;text-align:center;text-decoration:none;font-size:9px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.cd-anniversary-heart{color:#d47c84;font-size:11px}
+    .cd-request-row{display:flex;align-items:flex-start;gap:9px;padding:10px 0;border-top:1px solid #f0f3f4}.cd-request-row:first-child{border-top:0}.cd-request-avatar{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:50%;background:#f7f0df;color:#a47b34;font-size:11px;font-weight:800}.cd-request-help .cd-request-avatar{background:#fbebed;color:#bd6975}.cd-request-body{flex:1;min-width:0}.cd-request-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}.cd-request-meta strong{color:#344c57;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-request-meta time{color:#9ba7ac;font-size:8px;white-space:nowrap}.cd-request-body p{margin:5px 0;color:#778991;font-size:9px;line-height:1.5}.cd-request-body h4{margin:5px 0 0;color:#526770;font-size:9px;font-weight:750}.cd-request-body>a{display:inline-flex;gap:5px;align-items:center;color:#087f70;text-decoration:none;font-size:9px;font-weight:750}.cd-request-category{display:inline-block;margin-top:4px;padding:3px 7px;border-radius:20px;background:#f8f4e9;color:#8f723c;font-size:8px}.cd-more-link{display:block;margin-top:8px;text-align:center;color:#087f70;text-decoration:none;font-size:9px;font-weight:750}
+    .cd-attendance-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f0f3f4;text-decoration:none!important}.cd-attendance-row:first-child{border-top:0}.cd-attendance-date{width:38px;height:42px;flex:0 0 38px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;background:#eef7f4}.cd-attendance-date strong{color:#147868;font-size:15px;line-height:1}.cd-attendance-date span{margin-top:3px;color:#72928a;font-size:8px;text-transform:uppercase;font-weight:800}.cd-attendance-main{flex:1;min-width:0}.cd-attendance-title{display:flex;justify-content:space-between;gap:8px}.cd-attendance-title strong{color:#394f59;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-attendance-title time{color:#98a5aa;font-size:8px;white-space:nowrap}.cd-progress{height:4px;margin:8px 0 5px;border-radius:5px;background:#edf1f2;overflow:hidden}.cd-progress span{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#44b59a,#087f70)}.cd-attendance-stats{display:flex;gap:10px;align-items:center;color:#8b9aa1;font-size:8px}.cd-attendance-stats span:first-child{color:#268b69}.cd-attendance-stats i{margin-right:4px}.cd-attendance-stats b{margin-left:auto;color:#526a72;font-size:8px}.cd-attendance-arrow{color:#bcc7cb;font-size:8px}
+    .cd-giving-total{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;margin-bottom:5px;border-radius:9px;background:linear-gradient(100deg,#edf8f4,#f7fbf9)}.cd-giving-total span{color:#6f8785;font-size:9px;font-weight:650}.cd-giving-total strong{color:#147767;font-size:17px;letter-spacing:-.03em}.cd-giving-row{display:flex;align-items:center;gap:9px;padding:9px 2px;border-top:1px solid #f0f3f4}.cd-giving-avatar{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;background:#edf7f3;color:#65a28f;font-size:10px}.cd-giving-amount{color:#415a63;font-size:10px;white-space:nowrap}.cd-sermon-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #f0f3f4;text-decoration:none!important}.cd-sermon-row:first-child{border-top:0}.cd-sermon-row>img{width:47px;height:42px;flex:0 0 47px;object-fit:cover;border-radius:7px;background:#eef1f4}.cd-sermon-row>span{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}.cd-sermon-row>span strong{color:#344b56;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-sermon-row>span small{color:#91a0a6;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cd-sermon-row>span small i{margin-right:4px}.cd-sermon-row>span small b{padding:0 4px;color:#c3cdd0}.cd-sermon-row:hover>span strong{color:#087f70}.cd-sermon-arrow{color:#bdc8cc;font-size:8px}
+    @media(max-width:1100px){.cd-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.cd-grid-people{grid-template-columns:repeat(2,minmax(0,1fr))}.cd-grid-followup{grid-template-columns:repeat(2,minmax(0,1fr))}.cd-widget-attendance{grid-column:span 2}}
+    @media(max-width:700px){.cd-welcome{align-items:flex-start;flex-direction:column;padding:20px}.cd-welcome-right{align-items:flex-start;width:100%;gap:11px}.cd-welcome h1{font-size:21px}.cd-quick-actions{flex-wrap:wrap}.cd-quick-actions a{font-size:9px;padding:0 9px}.cd-metrics{gap:8px}.cd-metric{padding:12px 10px;gap:8px}.cd-metric-icon{width:33px;height:33px;flex-basis:33px}.cd-metric-copy strong{font-size:20px}.cd-metric-arrow{right:8px;top:8px}.cd-grid-people,.cd-grid-followup,.cd-grid-resources{grid-template-columns:1fr}.cd-widget-attendance{grid-column:auto}.cd-section-heading{align-items:flex-start}.cd-section-hint{max-width:45%;text-align:right}.cd-section-heading>a{font-size:9px}}
+    @media(max-width:420px){.cd-metrics{grid-template-columns:1fr 1fr}.cd-metric-copy em{font-size:8px}.cd-welcome h1{font-size:19px}.cd-quick-actions{gap:5px}.cd-quick-actions a{height:32px}}
+</style>
 @endpush
+@endsection

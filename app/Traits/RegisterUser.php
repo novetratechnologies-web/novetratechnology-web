@@ -48,7 +48,9 @@ trait RegisterUser
         try {
             $ref_user = null;
             if (!is_null($data->ref_name)) {
-                $ref_user = User::where('name', $data->ref_name)->first();
+                $ref_user = User::where('church_id', $church_id)
+                    ->where('name', $data->ref_name)
+                    ->first();
             }
 
             $user = new User;

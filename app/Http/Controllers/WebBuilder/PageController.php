@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
+    public function about()
+    {
+        return view('theme::about');
+    }
+
     private function navData(): array
     {
         $allPages = Page::with('pageCategory')

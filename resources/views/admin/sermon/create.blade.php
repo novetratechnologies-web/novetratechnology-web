@@ -1,17 +1,18 @@
 @extends('layouts.admin.layout')
 
 @section('content')
-<div class="w-full">
+<div class="w-full sermon-editor-page">
     <div>
         <h1 class="admin-h1 mb-5 flex items-center">
             <a href="{{ url('/admin/sermons') }}" title="Back" class="rounded-full bg-gray-300 p-2">
                 <img src="{{ url('/uploads/icons/back.svg') }}" class="w-3 h-3">
             </a>
-            <span class="mx-3">Create Sermon</span>
+            <span class="mx-3">Create a sermon</span>
         </h1>
+        <p class="-mt-4 mb-5 ml-11 max-w-2xl text-sm text-gray-500">Publish the message title, sermon notes, and a cover image. Add video, audio, and study files to the message after saving.</p>
     </div>
     @include('partials.message')
-    <div class="bg-white shadow px-4 py-3">
+    <div class="sermon-editor-card bg-white shadow px-4 py-3">
         <form method="POST" action="{{ url('/admin/sermon/save') }}" enctype="multipart/form-data">
             @csrf
             <div class="my-5">
@@ -37,10 +38,18 @@
                 </div>
             </div>
 
+            <section class="sermon-youtube-card" aria-labelledby="youtube-heading">
+                <div class="sermon-youtube-copy"><span class="sermon-youtube-icon" aria-hidden="true">▶</span><div><h2 id="youtube-heading">YouTube recording</h2><p>Paste a YouTube video, Shorts, or live URL. We’ll add it to the sermon and use its thumbnail when you haven’t chosen cover art.</p></div></div>
+                <label for="youtube_url" class="tw-form-label">YouTube URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="url" name="youtube_url" id="youtube_url" value="{{ old('youtube_url') }}" class="tw-form-control w-full" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url">
+                <span class="text-danger text-xs">{{ $errors->first('youtube_url') }}</span>
+                <div id="youtube-preview" class="sermon-youtube-preview hidden"><img id="youtube-thumbnail" alt="YouTube video thumbnail preview"><span><b id="youtube-preview-title">Video thumbnail preview</b><small>The video will be embedded on the public sermon page.</small></span></div>
+            </section>
+
             {{-- ── Cover Image ──────────────────────────────────────────────────── --}}
             <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-5">
                 <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-700">Cover Image <span class="text-red-400 font-normal text-xs ml-1">*</span></h2>
+                    <h2 class="text-sm font-semibold text-gray-700">Cover image <span class="text-gray-400 font-normal text-xs ml-1">(optional)</span></h2>
                 </div>
                 <div class="px-6 py-5">
                     <input type="hidden" name="cover_image_id" id="cover_image_id" value="{{ old('cover_image_id') }}">
@@ -63,7 +72,7 @@
                             <i class="fas fa-times mr-1"></i>Remove
                         </button>
                     </div>
-                    <p id="cover-image-error" class="hidden text-red-500 text-xs mt-2">Please select a cover image.</p>
+                <p class="mt-2 text-xs text-gray-500">Optional. Sermon messages can be published without artwork.</p>
                 </div>
             </div>
 
@@ -130,8 +139,9 @@
                 </div>
             </div>
 
-            <div class="my-6">
-                <button class="btn btn-primary blue-bg text-white rounded px-3 py-1 text-sm font-medium" id="create">Create</button>
+            <div class="sermon-editor-actions my-6">
+                <a href="{{ url('/admin/sermons') }}" class="sermon-cancel">Cancel</a>
+                <button class="btn btn-primary blue-bg text-white rounded px-5 py-2 text-sm font-semibold" id="create">Save sermon and add media <span aria-hidden="true">→</span></button>
             </div>
         </form>
     </div>
@@ -140,6 +150,28 @@
 @push('scripts')
 <script>
     (function() {
+        const youtubeInput = document.getElementById('youtube_url');
+        const youtubePreview = document.getElementById('youtube-preview');
+        const youtubeThumbnail = document.getElementById('youtube-thumbnail');
+        function getYoutubeId(value) {
+            try {
+                const url = new URL(value);
+                const host = url.hostname.replace(/^www\./, '').toLowerCase();
+                if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
+                if (['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)) {
+                    return url.searchParams.get('v') || (url.pathname.match(/^\/(?:embed|live|shorts)\/([^/?]+)/) || [])[1] || '';
+                }
+            } catch (_) {}
+            return '';
+        }
+        function updateYoutubePreview() {
+            const id = getYoutubeId(youtubeInput.value.trim());
+            if (!id) { youtubePreview.classList.add('hidden'); return; }
+            youtubeThumbnail.src = 'https://img.youtube.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg';
+            youtubePreview.classList.remove('hidden');
+        }
+        if (youtubeInput) { youtubeInput.addEventListener('input', updateYoutubePreview); updateYoutubePreview(); }
+
         const modal       = document.getElementById('image-picker-modal');
         const openBtn     = document.getElementById('open-picker-btn');
         const closeBtn    = document.getElementById('close-picker-btn');
@@ -360,16 +392,14 @@
             });
         }
 
-        var form = document.querySelector('form[action*="sermon/save"]');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                if (!inputPath || !inputPath.value) {
-                    e.preventDefault();
-                    if (coverError) coverError.classList.remove('hidden');
-                    openBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        }
     })();
 </script>
+@endpush
+
+@push('styles')
+<style>
+.sermon-youtube-card{margin:0 0 22px;padding:17px;border:1px solid #e0e7ec;border-radius:13px;background:linear-gradient(135deg,#fbfcfd,#f5f8fa)}.sermon-youtube-copy{display:flex;align-items:flex-start;gap:11px;margin-bottom:14px}.sermon-youtube-icon{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:9px;background:#fff0ee;color:#d5433b;font-size:13px}.sermon-youtube-copy h2{margin:1px 0 4px;font-size:14px;font-weight:800}.sermon-youtube-copy p{max-width:650px;margin:0;color:#728194;font-size:11px;line-height:1.55}.sermon-youtube-preview{display:flex;align-items:center;gap:12px;margin-top:12px;padding:9px;border:1px solid #e2e8ed;border-radius:9px;background:#fff}.sermon-youtube-preview img{width:116px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#e9eef2}.sermon-youtube-preview span{display:grid;gap:4px}.sermon-youtube-preview b{color:#23415b;font-size:11px}.sermon-youtube-preview small{color:#7b8997;font-size:10px}
+.sermon-editor-page{max-width:1050px;margin:0 auto;padding:8px 12px 40px}.sermon-editor-page .admin-h1{color:#082846}.sermon-editor-page .sermon-editor-card{border:1px solid #e5e9ed;border-radius:16px;padding:clamp(16px,3vw,30px);box-shadow:0 12px 30px rgba(8,40,70,.06)}.sermon-editor-page form>div.my-5{margin:0 0 24px}.sermon-editor-page form>div.my-5>div>div:first-child{width:100%;max-width:none}.sermon-editor-page form>div.my-5>div>div:nth-child(2){width:100%;max-width:none;margin-top:8px}.sermon-editor-page .tw-form-label{font-size:13px;font-weight:800;color:#263f57}.sermon-editor-page .tw-form-control{border-color:#dbe1e6;border-radius:9px;padding:11px 13px;font-size:14px}.sermon-editor-page input#title{font-size:17px;font-weight:700;min-height:48px}.sermon-editor-page #description{min-height:185px;line-height:1.7;resize:vertical}.sermon-editor-page .sermon-editor-card>form>div.bg-white{border:1px solid #e2e7eb;border-radius:13px;box-shadow:none}.sermon-editor-page .sermon-editor-card>form>div.bg-white>div:first-child{background:#f8fafb}.sermon-editor-page .sermon-editor-card h2{color:#203b54}.sermon-editor-page #cover-preview-img{max-width:420px;height:210px}.sermon-editor-page .sermon-editor-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;border-top:1px solid #edf0f2;padding-top:20px}.sermon-editor-page .sermon-cancel{color:#647588;font-size:13px;font-weight:700;padding:10px 14px}.sermon-editor-page .sermon-editor-actions button{border-radius:9px}.sermon-editor-page #create{background:#082846}.sermon-editor-page #create:hover{background:#123d63}
+@media(max-width:640px){.sermon-editor-page{padding-left:0;padding-right:0}.sermon-editor-page .admin-h1{font-size:22px}.sermon-editor-page .sermon-editor-actions{align-items:stretch;flex-direction:column-reverse}.sermon-editor-page .sermon-editor-actions>*{width:100%;text-align:center}}
+</style>
 @endpush

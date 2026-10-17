@@ -1,5 +1,9 @@
 @extends('layouts.admin.layout')
 
+@push('styles')
+    @include('admin.events._admin_styles')
+@endpush
+
 @section('content')
 @php
 $dayNames = [0=>'Sun',1=>'Mon',2=>'Tue',3=>'Wed',4=>'Thu',5=>'Fri',6=>'Sat'];
@@ -15,20 +19,14 @@ $activeTab = request('tab', 'description');
 $isAdmin = auth()->user()->usergroup_id == 3;
 @endphp
 
-{{-- ── Page header ───────────────────────────────────────────────────── --}}
-<div class="flex items-center justify-between mb-5">
-    <h1 class="admin-h1 flex items-center gap-3">
-        <a href="{{ url('/admin/events') }}"
-            class="rounded-full bg-gray-100 hover:bg-gray-200 p-2 transition">
-            <img src="{{ url('uploads/icons/back.svg') }}" class="w-3 h-3">
-        </a>
-        Event Details
-    </h1>
-    <div class="flex items-center gap-2">
-        @if($isAdmin || Auth::user()->hasPermission('create-events'))
+<div class="event-admin event-detail">
+<div class="event-heading">
+    <div class="event-heading-copy"><a href="{{ route('admin.events.index') }}" class="event-back"><i class="fas fa-arrow-left"></i> All events</a><p class="event-kicker">Event workspace · {{ ucfirst($event->category ?: 'Gathering') }}</p><h1 class="admin-h1">{{ $event->title }}</h1><p class="event-subtitle">Manage event details, photos, attendance, and your team notes.</p></div>
+    <div class="event-actions">
+        @if($isAdmin || Auth::user()->hasPermission('update-events'))
         <a href="{{ route('admin.events.editForm', $event->id) }}"
-            class="text-sm px-3 py-1.5 rounded flex items-center gap-1.5 btn btn-primary submit-btn">
-            <i class="fas fa-pen text-xs"></i> Edit
+            class="event-primary">
+            <i class="fas fa-pen"></i> Edit event
         </a>
         @endif
         @if($isAdmin || Auth::user()->hasPermission('delete-events'))
@@ -36,8 +34,8 @@ $isAdmin = auth()->user()->usergroup_id == 3;
             onsubmit="return confirm('Delete this event?')">
             @csrf @method('DELETE')
             <button type="submit"
-                class="text-sm px-3 py-1.5 rounded flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition">
-                <i class="fas fa-trash text-xs"></i> Delete
+                class="event-secondary" style="color:#b43e3e;border-color:#f0d3d3">
+                <i class="fas fa-trash"></i> Delete
             </button>
         </form>
         @endif
@@ -47,13 +45,13 @@ $isAdmin = auth()->user()->usergroup_id == 3;
 @include('partials.message')
 
 {{-- ── Event hero card ───────────────────────────────────────────────── --}}
-<div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-5 overflow-hidden">
+<div class="event-panel event-summary mb-5 overflow-hidden">
     <div class="flex flex-col md:flex-row">
 
         {{-- Cover image --}}
         <div class="md:w-56 flex-shrink-0 bg-gray-50 flex items-center justify-center p-4">
             @if($event->ImagePath)
-            <img src="{{ $event->ImagePath }}" class="w-full h-40 object-cover rounded">
+            <img src="{{ $event->ImagePath }}" alt="{{ $event->title }}" class="event-cover w-full h-40 object-cover rounded">
             @else
             <div class="w-full h-40 bg-gray-100 rounded flex items-center justify-center">
                 <i class="fas fa-calendar-alt text-4xl text-gray-300"></i>
@@ -64,7 +62,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
         {{-- Meta --}}
         <div class="flex-1 px-6 py-5">
             <div class="flex flex-wrap items-start gap-2 mb-2">
-                <h2 class="text-xl font-bold text-gray-800 flex-1">{{ $event->title }}</h2>
+                <h2 class="event-card-title flex-1">Event at a glance</h2>
                 <span class="text-xs font-medium px-2 py-0.5 rounded-full capitalize {{ $typeBadge[$event->select_type] ?? 'bg-gray-100 text-gray-500' }}">
                     {{ $event->select_type }}
                 </span>
@@ -155,10 +153,10 @@ $isAdmin = auth()->user()->usergroup_id == 3;
 </div>
 
 {{-- ── Tabs ───────────────────────────────────────────────────────────── --}}
-<div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+<div class="event-panel">
 
     {{-- Tab nav --}}
-    <div class="flex border-b border-gray-200 overflow-x-auto">
+    <div class="event-tabs flex border-b border-gray-200 overflow-x-auto">
         <button class="ev-tab-btn px-5 py-3 text-sm font-medium whitespace-nowrap transition border-b-2"
             data-tab="description">
             <i class="fas fa-align-left mr-1.5 text-xs"></i> Description
@@ -195,7 +193,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
     </div>
 
     {{-- ── Description tab ──────────────────────────────────────────── --}}
-    <div class="ev-tab-panel px-6 py-5" data-tab="description">
+    <div class="ev-tab-panel event-tab-content px-6 py-5" data-tab="description">
         @if($event->description)
         <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ $event->description }}</p>
         @else
@@ -205,7 +203,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
 
     {{-- ── Photos tab ────────────────────────────────────────────────── --}}
     @if($event->enable_gallery)
-    <div class="ev-tab-panel px-6 py-5" data-tab="photos">
+    <div class="ev-tab-panel event-tab-content px-6 py-5" data-tab="photos">
 
         {{-- Upload form --}}
         <form action="{{ url('/admin/upload/photos/' . $event->id) }}" method="POST"
@@ -254,7 +252,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
 
     {{-- ── Attendance tab ─────────────────────────────────────────────── --}}
     @if($event->enable_attendance)
-    <div class="ev-tab-panel px-6 py-5" data-tab="attendance">
+    <div class="ev-tab-panel event-tab-content px-6 py-5" data-tab="attendance">
 
         {{-- Open / start a session --}}
         @can('create-attendance')
@@ -388,7 +386,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
     @endif
 
     {{-- ── Notes tab ─────────────────────────────────────────────────── --}}
-    <div class="ev-tab-panel px-6 py-5" data-tab="notes">
+    <div class="ev-tab-panel event-tab-content px-6 py-5" data-tab="notes">
 
         {{-- Add note form --}}
         <form id="note-form" class="mb-5">
@@ -427,6 +425,7 @@ $isAdmin = auth()->user()->usergroup_id == 3;
 
 </div>
 
+</div>
 @endsection
 
 @push('scripts')

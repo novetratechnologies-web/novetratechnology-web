@@ -169,6 +169,7 @@ trait Dashboard
         });
 
         $amountarray = [];
+        $array['final'] = [];
         foreach ($array['funds'] as $key => $groups) {
             foreach ($groups as $fund) {
                 $amountarray[$key] = ($amountarray[$key] ?? 0) + $fund->amount;

@@ -1,8 +1,9 @@
 @extends('layouts.admin.layout')
 @section('content')
-    <div class="w-full">
+    <div class="w-full gallery-form-page">
         <!-- lg:w-11/12 -->
         <div>
+            <p class="gallery-eyebrow">MEDIA LIBRARY</p>
             <h1 class="admin-h1  flex items-center">
                 <a href="{{ url('/admin/gallery') }}" title="Back" class="rounded-full bg-gray-100 p-2">
                     <img src="{{ url('uploads/icons/back.svg') }}" class="w-3 h-3">
@@ -10,10 +11,10 @@
                 <span class="mx-3">Edit Gallery Album</span>
             </h1>
         </div>
-        <div class="bg-white shadow px-2 py-2 my-3">
+        <div class="bg-white shadow px-2 py-2 my-3 gallery-form-card">
             <form method="POST" action="{{ url('/admin/gallery/edit/' . $gallery->id) }}" enctype="multipart/form-data">
                 @csrf
-                <div class="my-3 px-2 py-1">
+                <div class="my-3 px-2 py-1 gallery-album-name-field">
                     <div class="">
                         <div class="w-full lg:w-1/4">
                             <label for="name" class="tw-form-label">Gallery Name<span
@@ -134,8 +135,8 @@
                 </div>
             </div>
 
-                <div class="my-6 px-2">
-                    <button class="btn btn-primary blue-bg text-white rounded px-3 py-1 text-sm font-medium">Submit</button>
+                <div class="my-6 px-2 gallery-form-actions">
+                    <a href="{{ url('/admin/gallery') }}">Cancel</a><button class="btn btn-primary blue-bg text-white rounded px-3 py-1 text-sm font-medium"><i class="fas fa-check mr-2"></i>Save changes</button>
                 </div>
             </form>
         </div>
@@ -389,4 +390,10 @@
         }
     })();
 </script>
+@endpush
+
+@push('styles')
+<style>
+.gallery-form-page .gallery-eyebrow{margin:4px 0;color:#a47a31;font-size:9px;font-weight:900;letter-spacing:.15em}.gallery-form-page .admin-h1{margin:4px 0 17px;color:#102d47;font-size:clamp(22px,3vw,29px);font-weight:800;letter-spacing:-.03em}.gallery-form-page .admin-h1>a{display:none}.gallery-form-card{max-width:920px;padding:24px!important;border:1px solid #e5eaf0;border-radius:13px;box-shadow:0 8px 26px #12334a0a!important}.gallery-form-card form>div.gallery-album-name-field{padding:6px 2px 18px!important}.gallery-form-page label.tw-form-label,.gallery-form-page label{color:#27435b;font-size:11px;font-weight:750}.gallery-form-page input.tw-form-control,.gallery-form-page textarea.tw-form-control{min-height:42px;padding:10px 12px;border:1px solid #dce4ea;border-radius:8px;background:#fbfcfd;color:#1d3a52;font-size:12px;outline:none;transition:border .15s,box-shadow .15s}.gallery-form-page input.tw-form-control:focus,.gallery-form-page textarea.tw-form-control:focus{border-color:#b99555;box-shadow:0 0 0 3px #b995551c}.gallery-form-page #name{max-width:560px}.gallery-form-page .gallery-form-card>form>.bg-white{overflow:hidden;border:1px solid #e5eaf0!important;border-radius:10px!important;box-shadow:none!important}.gallery-form-page .gallery-form-card>form>.bg-white>div:first-child{padding:14px 17px;border-color:#edf0f3}.gallery-form-page .gallery-form-card>form>.bg-white>div:first-child h2{color:#18344c;font-size:12px}.gallery-form-page .gallery-form-card>form>.bg-white>div:nth-child(2){padding:17px}.gallery-form-page #cover-preview-img{height:180px;max-width:340px;object-fit:cover}.gallery-form-page #open-picker-btn,.gallery-form-page #clear-image-btn{min-height:36px;padding:0 12px;border-radius:7px;font-size:10px;font-weight:700}.gallery-form-page #open-picker-btn{border-color:#d7e0e7;color:#23445d}.gallery-form-page .gallery-form-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:20px;padding:16px 0 0!important;border-top:1px solid #edf0f3}.gallery-form-actions>a{color:#6f8090;font-size:11px;font-weight:700;text-decoration:none}.gallery-form-actions button{min-height:40px;padding:0 17px!important;border:0;border-radius:8px!important;background:#102d47!important;font-size:11px!important;font-weight:750!important}.gallery-form-page #image-picker-modal,.gallery-form-page #upload-media-modal{backdrop-filter:blur(4px)}.gallery-form-page #image-picker-modal>div,.gallery-form-page #upload-media-modal>div{overflow:hidden;border:1px solid #e4eaf0;border-radius:13px;box-shadow:0 24px 70px #061b3040}.gallery-form-page #picker-grid>div{border-radius:8px}.gallery-form-page #picker-grid img{height:110px;object-fit:cover}@media(max-width:640px){.gallery-form-card{padding:14px!important}.gallery-form-page .gallery-form-actions{justify-content:space-between}.gallery-form-page #cover-preview-img{width:100%;max-width:none}}
+</style>
 @endpush

@@ -7,38 +7,88 @@ use App\Models\Prayer;
 use App\Models\PrayerCategory;
 use App\Models\PrayerParticipant;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PrayerRequestController extends Controller
 {
     public function index()
     {
         $church = request()->attributes->get('_church');
+        $churchId = optional($church)->id;
 
-        $requests = Prayer::where('status', Prayer::STATUS_ACTIVE)
-                          ->when($church, fn ($q) => $q->where('church_id', $church->id))
-                          ->orderByDesc('created_at')
-                          ->paginate(10);
+        $activeQuery = Prayer::query()
+            ->active()
+            ->forChurch($churchId)
+            ->with('category');
 
-        $categories = PrayerCategory::orderBy('name')->get();
+        $query = clone $activeQuery;
+        $search = trim((string) request()->query('q', ''));
+        $categoryId = request()->query('category_id');
 
-        return view('theme::prayer_index', compact('requests', 'categories'));
+        if ($search !== '') {
+            $query->where('text', 'like', '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%');
+        }
+
+        if ($categoryId && ctype_digit((string) $categoryId)) {
+            $query->where('category_id', (int) $categoryId);
+        }
+
+        $requests = $query->orderByPinned()->paginate(9)->withQueryString();
+        $categories = PrayerCategory::query()
+            ->forChurch($churchId)
+            ->active()
+            ->ordered()
+            ->get();
+
+        $requestIds = $requests->getCollection()->modelKeys();
+        $liftedPrayerIds = [];
+        if ($requestIds) {
+            $participants = PrayerParticipant::query()->whereIn('prayer_id', $requestIds);
+            if (auth()->check()) {
+                $participants->where('user_id', auth()->id());
+            } else {
+                $guestHashes = array_map(
+                    fn ($id) => hash('sha256', request()->ip() . '|' . request()->userAgent() . '|' . $id),
+                    $requestIds
+                );
+                $participants->whereIn('anon_hash', $guestHashes);
+            }
+            $liftedPrayerIds = $participants->pluck('prayer_id')->map(fn ($id) => (int) $id)->all();
+        }
+
+        $stats = [
+            'active' => (clone $activeQuery)->count(),
+            'people_praying' => (int) (clone $activeQuery)->selectRaw('COALESCE(SUM(member_count + guest_count + anonymous_count), 0) as total')->value('total'),
+        ];
+
+        return view('theme::prayer_index', compact('requests', 'categories', 'stats', 'search', 'categoryId', 'liftedPrayerIds'));
     }
 
     public function store(Request $request)
     {
+        $church = $request->attributes->get('_church');
+        $churchId = optional($church)->id;
         $validated = $request->validate([
-            'text'        => 'required|string|min:10|max:500',
-            'category_id' => 'nullable|exists:prayer_categories,id',
+            'text' => ['required', 'string', 'min:10', 'max:500'],
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('prayer_categories', 'id')->where(fn ($query) => $query
+                    ->where('church_id', $churchId)
+                    ->where('is_active', true)),
+            ],
+        ], [
+            'text.required' => 'Please share a prayer request before submitting.',
+            'text.min' => 'Please provide at least 10 characters so the prayer team understands your request.',
+            'category_id.exists' => 'Please choose an available prayer category.',
         ]);
 
-        $church = $request->attributes->get('_church');
-
         Prayer::create([
-            'church_id'       => optional($church)->id,
+            'church_id'       => $churchId,
             'user_id'         => auth()->id(),
             'category_id'     => $validated['category_id'] ?? null,
-            'text'            => $validated['text'],
-            'original_text'   => $validated['text'],
+            'text'            => trim($validated['text']),
+            'original_text'   => trim($validated['text']),
             'status'          => Prayer::STATUS_PENDING,
             'member_count'    => 0,
             'guest_count'     => 0,

@@ -37,4 +37,11 @@ class PaystackService
         // Paystack returns amount in kobo (smallest unit) — divide by 100
         return ($result['data']['amount'] ?? 0) / 100;
     }
+
+    public function matchesPayment(array $result, float $amount, string $currency): bool
+    {
+        return $this->isSuccessful($result)
+            && (int) round($this->getAmount($result) * 100) === (int) round($amount * 100)
+            && strtoupper((string) ($result['data']['currency'] ?? '')) === strtoupper($currency);
+    }
 }

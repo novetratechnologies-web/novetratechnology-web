@@ -140,7 +140,7 @@ import { bus } from "../../app";
           }).then(function(isConfirm) {
             if (isConfirm) 
             {
-                axios.get(thisswal.url+ '/admin/gallery/photo/delete/'+ id).then(response => {
+                axios.delete(thisswal.url+ '/admin/gallery/photo/delete/'+ id).then(response => {
                   thisswal.success = response.data.success;
                   window.location.reload();
                 }); 

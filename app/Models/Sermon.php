@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\Common;
+use App\Traits\AssignContentBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -56,6 +57,7 @@ class Sermon extends Model
     use SoftDeletes;
     use Common;
     use HasFactory;
+    use AssignContentBranch;
 
     /**
      * The table associated with the model.
@@ -182,9 +184,6 @@ class Sermon extends Model
     public function getCoverImagePathAttribute()
     {
         if (!$this->cover_image) return '';
-        if (str_starts_with($this->cover_image, 'http://') || str_starts_with($this->cover_image, 'https://')) {
-            return $this->cover_image;
-        }
         return $this->getFilePath($this->cover_image);
     }
 

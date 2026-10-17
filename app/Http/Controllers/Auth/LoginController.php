@@ -63,15 +63,10 @@ class LoginController extends Controller
         $user = Auth::user();
 
 
-        if ($user->usergroup_id == 3 || $user->usergroup_id == 4) {
-
+        if (in_array((int) $user->usergroup_id, [1, 2, 3, 4], true)) {
             return '/admin/dashboard';
-        }else{
-
-        return '/member/home';
-
         }
 
-        
+        return (int) $user->usergroup_id === 5 ? '/member/home' : route('web.home');
     }
 }

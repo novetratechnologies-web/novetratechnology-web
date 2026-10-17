@@ -1,0 +1,31 @@
+services:
+  mediamtx:
+    build:
+      context: ./streaming
+      dockerfile: Dockerfile
+    container_name: igm-mediamtx
+    restart: unless-stopped
+    environment:
+      STREAM_WEBHOOK_TOKEN: ${STREAM_WEBHOOK_TOKEN:?Set STREAM_WEBHOOK_TOKEN in .env}
+      STREAM_WEBHOOK_URL: ${STREAM_WEBHOOK_URL:?Set STREAM_WEBHOOK_URL in .env}
+      MTX_AUTHMETHOD: http
+      MTX_AUTHHTTPADDRESS: ${STREAM_AUTH_URL:?Set STREAM_AUTH_URL in .env}
+      MTX_RTMPADDRESS: :1935
+      MTX_HLSADDRESS: :8888
+      MTX_HLSALLOWORIGINS: '*'
+      MTX_PATHDEFAULTS_RUNONONLINE: >-
+        curl -fsS -X POST -H "Authorization: Bearer ${STREAM_WEBHOOK_TOKEN}"
+        -H "Content-Type: application/x-www-form-urlencoded"
+        --data-urlencode "path=$$MTX_PATH" --data "online=1" ${STREAM_WEBHOOK_URL}
+      MTX_PATHDEFAULTS_RUNONOFFLINE: >-
+        curl -fsS -X POST -H "Authorization: Bearer ${STREAM_WEBHOOK_TOKEN}"
+        -H "Content-Type: application/x-www-form-urlencoded"
+        --data-urlencode "path=$$MTX_PATH" --data "online=0" ${STREAM_WEBHOOK_URL}
+    ports:
+      - "1935:1935/tcp"
+      - "8888:8888/tcp"
+    healthcheck:
+      test: ["CMD", "/mediamtx", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -36,7 +36,7 @@ class ChurchObserver
                 'facebook' => 'https://www.facebook.com/Test-page-112456983890996',
                 'twitter' => 'https://twitter.com/Twitter',
                 'instagram' => 'https://instagram.com/meme_coding?igshid=mw432c7aip81',
-                'site_title' => 'church Social',
+                'site_title' => 'IGM Church',
                 'site_description' => 'Site Description',
                 'site_keyword' => 'Site keyword',
                 'favicon' => '-',

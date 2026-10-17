@@ -60,7 +60,7 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $routeMiddleware = [
-        'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+        'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
@@ -69,6 +69,7 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'churchadmin' => \App\Http\Middleware\MustBeChurchAdmin::class,
+        'adminportal' => \App\Http\Middleware\AdminPortal::class,
         'churchmember' => \App\Http\Middleware\MustBeChurchMember::class,
         'admingroup' => \App\Http\Middleware\AdminOnly::class,
         'permission' => \App\Http\Middleware\AdminOrPermission::class,

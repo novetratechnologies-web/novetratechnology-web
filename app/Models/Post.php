@@ -8,6 +8,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\Models\Media;
 use App\Traits\Common;
+use App\Traits\AssignContentBranch;
 
 class Post extends Model implements HasMedia
 {
@@ -15,6 +16,7 @@ class Post extends Model implements HasMedia
     use InteractsWithMedia;
     use SoftDeletes;
     use Common;
+    use AssignContentBranch;
 
     /**
      * Post Model

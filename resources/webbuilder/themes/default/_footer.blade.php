@@ -1,23 +1,27 @@
-<footer class="bg-gray-900 text-gray-400 mt-16 pt-4">
+<footer id="igm-site-footer" class="{{ request()->routeIs('web.home') ? 'igm-home-footer' : '' }} bg-gray-900 text-gray-400 mt-16 pt-4">
+    @php
+        $footerSummary = trim((string) ($_churchdetail['short_summary'] ?? ''));
+        if ($footerSummary === '' || stripos($footerSummary, 'lorem ipsum') !== false) {
+            $footerSummary = 'To preach the Word, make disciples, and demonstrate the love of Christ through community service and spiritual empowerment.';
+        }
+        $footerAddress = trim((string) ($_churchdetail['address'] ?? ''));
+        if (strcasecmp($footerAddress, 'Synthetic Test Address') === 0) {
+            $footerAddress = 'IGM Church HQ, Migori, Kenya';
+        }
+    @endphp
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
 
             {{-- Col 1: Brand --}}
             <div class="lg:col-span-1">
-                @if(!empty($_churchdetail['church_logo']))
-                    <img src="{{ \Storage::url($_churchdetail['church_logo']) }}"
-                         alt="{{ $_church->name ?? config('app.name') }}"
-                         class="h-10 w-auto mb-4 brightness-0 invert opacity-80">
-                @endif
+                <img src="{{ asset('uploads/brand/igm-church-logo.png') }}"
+                     alt="IGM Church"
+                     class="h-10 w-auto mb-4 brightness-0 invert opacity-80">
                 <p class="text-white font-bold text-lg leading-snug">
                     {{ $_church->name ?? config('app.name') }}
                 </p>
-                @if(!empty($_churchdetail['short_summary']))
-                    <p class="mt-3 text-sm leading-relaxed">{{ $_churchdetail['short_summary'] }}</p>
-                @else
-                    <p class="mt-3 text-sm leading-relaxed">A loving community of faith, rooted in the gospel of Jesus Christ.</p>
-                @endif
+                <p class="mt-3 text-sm leading-relaxed">{{ $footerSummary }}</p>
 
                 {{-- Social links --}}
                 <div class="flex items-center gap-4 mt-5">
@@ -53,7 +57,7 @@
                 <h4 class="text-white text-sm font-semibold uppercase tracking-widest mb-5">Explore</h4>
                 <ul class="space-y-3 text-sm">
                     <li><a href="{{ route('web.home') }}"     class="hover:text-white transition">Home</a></li>
-                    <li><a href="{{ route('web.pages') }}"    class="hover:text-white transition">About Us</a></li>
+                    <li><a href="{{ route('web.about') }}"    class="hover:text-white transition">About Us</a></li>
                     <li><a href="{{ route('web.posts') }}"    class="hover:text-white transition">Blog &amp; News</a></li>
                     <li><a href="{{ route('web.gallery') }}"  class="hover:text-white transition">Gallery</a></li>
                     <li><a href="{{ route('web.bulletins') }}" class="hover:text-white transition">Bulletins</a></li>
@@ -79,13 +83,13 @@
             <div>
                 <h4 class="text-white text-sm font-semibold uppercase tracking-widest mb-5">Get in Touch</h4>
                 <ul class="space-y-4 text-sm">
-                    @if(!empty($_churchdetail['address']))
+                    @if($footerAddress !== '')
                     <li class="flex items-start gap-3">
                         <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        <span class="leading-relaxed">{{ $_churchdetail['address'] }}</span>
+                        <span class="leading-relaxed">{{ $footerAddress }}</span>
                     </li>
                     @endif
                     @if(!empty($_churchdetail['phone']))
@@ -134,13 +138,17 @@
             <p>&copy; {{ date('Y') }} {{ $_church->name ?? config('app.name') }}. All rights reserved.</p>
             <div class="flex items-center gap-5">
                 @auth
-                @php $isFooterGuest = optional(auth()->user()->userprofile)->membership_type === 'guest'; @endphp
-                <form method="POST" action="{{ $isFooterGuest ? route('web.guest.logout') : route('logout') }}" class="inline">
+                @php
+                    $footerUser = auth()->user();
+                    $isFooterStaff = in_array((int) $footerUser->usergroup_id, [1, 2, 3, 4], true);
+                    $isFooterGuest = optional($footerUser->userprofile)->membership_type === 'guest';
+                @endphp
+                <form method="POST" action="{{ $isFooterStaff ? route('admin.logout') : ($isFooterGuest ? route('web.guest.logout') : route('logout')) }}" class="inline">
                     @csrf
                     <button type="submit" class="hover:text-gray-400 transition">Logout</button>
                 </form>
                 @else
-                <a href="{{ route('login') }}" class="hover:text-gray-400 transition">Staff Login</a>
+                <a href="{{ route('admin.login') }}" class="hover:text-gray-400 transition">Staff Login</a>
                 @endauth
                 <a href="{{ route('web.contact') }}" class="hover:text-gray-400 transition">Privacy</a>
                 <button onclick="window.scrollTo({top:0,behavior:'smooth'})"

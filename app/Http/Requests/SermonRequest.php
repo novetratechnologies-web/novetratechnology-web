@@ -50,6 +50,11 @@ class SermonRequest extends FormRequest
 
                 'title'       => 'required|check_title',
                 'description' => 'required|check_description',
+                'youtube_url' => ['nullable', 'url', function ($attribute, $value, $fail) {
+                    if (!$this->isValidYouTubeUrl($value)) {
+                        $fail('Enter a valid YouTube watch, Shorts, or live URL.');
+                    }
+                }],
                 //'cover_image' => 'required|mimes:jpeg,jpg,bmp,png',
 
             ];
@@ -67,5 +72,13 @@ class SermonRequest extends FormRequest
             'cover_image.required' => 'Select your image',
             'cover_image.mimes' => 'file extension error',
         ];
+    }
+
+    private function isValidYouTubeUrl(?string $value): bool
+    {
+        if (!$value) return true;
+        $host = strtolower((string) parse_url($value, PHP_URL_HOST));
+        return in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com', 'youtu.be', 'www.youtu.be'], true)
+            && (bool) preg_match('~(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:[^#]*&)?v=|embed/|live/|shorts/))([A-Za-z0-9_-]{11})~i', $value);
     }
 }

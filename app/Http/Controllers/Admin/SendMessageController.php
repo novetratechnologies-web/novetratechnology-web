@@ -22,6 +22,7 @@ use Exception;
 use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\Communication\ChurchCommunicationDispatcher;
 
 /**
  * SendMessageController
@@ -74,7 +75,7 @@ class SendMessageController extends Controller
     }
 
 
-    public function batchindex($batch_id)
+    public function batchindex(Request $request, $batch_id)
     {
 
 
@@ -142,8 +143,42 @@ class SendMessageController extends Controller
         //
         try {
 
+            $selected = array_values(array_filter(array_map('intval', explode(',', $request->selected ?? ''))));
+            if (!$selected) {
+                return response()->json(['message' => 'Choose at least one recipient.'], 422);
+            }
+
+            // Keep the established attachment and scheduled-send workflow intact. Immediate
+            // messages use the shared queue so consent, retries, and delivery history apply.
+            if (!$request->boolean('send_later') && !$request->hasFile('attachments')) {
+                $channel = [
+                    'mail' => 'email',
+                    'notification' => 'in_app',
+                    'sms' => 'sms',
+                ][$request->input('mode')] ?? null;
+                if (!$channel) {
+                    return response()->json(['message' => 'Choose a valid message channel.'], 422);
+                }
+
+                $queued = app(ChurchCommunicationDispatcher::class)->toUsers(
+                    (int) Auth::user()->church_id,
+                    $selected,
+                    $channel,
+                    $request->input('subject', 'Church update'),
+                    $request->input('message'),
+                    (string) Str::uuid()
+                );
+
+                return response()->json([
+                    'message' => $queued
+                        ? "Message queued for {$queued} delivery(s)."
+                        : 'No delivery was queued. Recipients may have opted out, or the selected channel is not configured.',
+                    'queued' => $queued,
+                ]);
+            }
+
             $data = [];
-            $data['selected']       = array_filter(array_map('trim', explode(",", $request->selected ?? '')));
+            $data['selected']       = $selected;
             $data['membership_type'] = $request->membership_type;
             $data['subject']        = $request->subject;
             $data['message']        = $request->message;

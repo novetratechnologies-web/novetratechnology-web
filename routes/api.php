@@ -29,24 +29,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 	return $request->user();
 });
 
-//Testing Purpose start
-
 Route::get('/test', 'Api\TestController@test');
-Route::get('/users', 'Api\TestController@index');
-
-Route::get('/events', 'Api\TestController@events');
-
-Route::get('/gallery', 'Api\TestController@gallery');
-
+Route::post('/streaming/auth', 'Api\StreamingMediaController@authenticate');
+Route::post('/streaming/status', 'Api\StreamingMediaController@status')->middleware('throttle:120,1');
+Route::get('/streaming/public-status', 'Api\StreamingMediaController@publicStatus')->middleware('throttle:600,1');
 Route::get('/events/show/details/{id}', 'Api\EventsController@showdetails');
-
-//end
 
 
 //login
 Route::post('/login', 'Api\LoginController@login');
-//logout All Devices
-Route::post('/logout/devices', 'Api\LoginController@logoutDevices');
+// Revoke this authenticated member's tokens on all devices.
+Route::post('/logout/devices', 'Api\LoginController@logoutDevices')->middleware('auth:sanctum');
 //locations , churches list
 Route::get('/locations', 'Api\ChurchController@locationList');
 

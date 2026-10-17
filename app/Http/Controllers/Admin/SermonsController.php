@@ -43,14 +43,20 @@ class SermonsController extends Controller
      */
     public function index(Request $request)
     {
-        $sermons = Sermon::where('church_id', Auth::user()->church_id)->with('vote');
-        $q = request('q');
-        if ($q != '') {
-            $sermons = Sermon::whereHas('user', function ($query) use ($q) {
-                $query->where([['title', 'LIKE', '%' . $q . '%'], ['church_id', Auth::user()->church_id]])->orWhere('name', 'LIKE', '%' . $q . '%');
-            });
-        }
-        $sermons = $sermons->orderBy('id', 'DESC')->paginate(8);
+        $q = trim((string) $request->query('q', ''));
+        $sermons = Sermon::query()
+            ->where('church_id', Auth::user()->church_id)
+            ->with(['vote', 'user.userprofile', 'sermonlinks' => fn ($query) => $query->where('church_id', Auth::user()->church_id)])
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($query) use ($q) {
+                    $query->where('title', 'like', '%' . $q . '%')
+                        ->orWhere('description', 'like', '%' . $q . '%')
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', '%' . $q . '%'));
+                });
+            })
+            ->orderByDesc('id')
+            ->paginate(8)
+            ->withQueryString();
 
         return view('admin/sermon/index', ['sermons' => $sermons])->withQuery($q);
     }
@@ -62,8 +68,8 @@ class SermonsController extends Controller
      */
     public function show($id)
     {
-        $sermon = Sermon::where('id', $id)->first();
-        $sermonlinks = SermonLink::where('sermons_id', $id)->orderBy('date', 'asc')->paginate(5);
+        $sermon = Sermon::where('id', $id)->where('church_id', Auth::user()->church_id)->firstOrFail();
+        $sermonlinks = SermonLink::where('sermons_id', $id)->where('church_id', Auth::user()->church_id)->orderBy('date', 'asc')->paginate(5);
         if (Gate::allows('sermon', $sermon)) {
             return view('/admin/sermon/show', ['sermon' => $sermon, 'sermonlinks' => $sermonlinks]);
         } else {
@@ -88,6 +94,7 @@ class SermonsController extends Controller
             //     $path = $request->input('cover_image_path') ?: null;
             // }
 
+            $path = null;
             if ($request->cover_image_id && str_starts_with($request->cover_image_id, 'media_')) {
                 $mediaId    = str_replace('media_', '', $request->cover_image_id);
                 $mediaImage = \App\Models\MediaFile::where([
@@ -95,8 +102,10 @@ class SermonsController extends Controller
                     ['church_id', Auth::user()->church_id],
                     ['media_type', 'image'],
                 ])->first();
-                if ($mediaImage)
-                    $path = $mediaImage->url;
+                if (!$mediaImage) {
+                    return back()->withErrors(['cover_image_id' => 'Choose an image from your church media library.'])->withInput();
+                }
+                $path = $mediaImage->url;
             } elseif ($request->cover_image_path) {
                 $path = $request->cover_image_path;
             }
@@ -108,6 +117,22 @@ class SermonsController extends Controller
             $sermon->description = $request->description;
             $sermon->cover_image = $path;
             $sermon->save();
+
+            if ($request->filled('youtube_url')) {
+                $youtubeResource = new SermonLink;
+                $youtubeResource->church_id = $church_id;
+                $youtubeResource->user_id = $user_id;
+                $youtubeResource->sermons_id = $sermon->id;
+                $youtubeResource->title = $request->title;
+                $youtubeResource->date = now();
+                $youtubeResource->video_link = trim($request->input('youtube_url'));
+                $youtubeResource->save();
+
+                if (!$sermon->cover_image && $youtubeResource->youtube_thumbnail_url) {
+                    $sermon->cover_image = $youtubeResource->youtube_thumbnail_url;
+                    $sermon->save();
+                }
+            }
 
             if (env('MAIL_STATUS') === 'on') {
                 event(new SermonEvent($sermon));
@@ -142,7 +167,13 @@ class SermonsController extends Controller
             ->where('church_id', Auth::user()->church_id)
             ->firstOrFail();
 
-        return view('admin/sermon/edit', ['sermon' => $sermon]);
+        $youtubeUrl = SermonLink::where('sermons_id', $sermon->id)
+            ->where('church_id', Auth::user()->church_id)
+            ->get()
+            ->first(fn ($resource) => $resource->youtube_video_id)
+            ?->video_link;
+
+        return view('admin/sermon/edit', ['sermon' => $sermon, 'youtubeUrl' => $youtubeUrl]);
     }
 
     public function update(SermonUpdateRequest $request, $id)
@@ -155,6 +186,7 @@ class SermonsController extends Controller
             $sermon->title       = $request->title;
             $sermon->description = $request->description;
             // $sermon->cover_image = $request->input('cover_image_path') ?: null;
+            $path = $sermon->cover_image;
             if ($request->cover_image_id && str_starts_with($request->cover_image_id, 'media_')) {
                 $mediaId    = str_replace('media_', '', $request->cover_image_id);
                 $mediaImage = \App\Models\MediaFile::where([
@@ -162,8 +194,10 @@ class SermonsController extends Controller
                     ['church_id', Auth::user()->church_id],
                     ['media_type', 'image'],
                 ])->first();
-                if ($mediaImage)
-                    $path = $mediaImage->url;
+                if (!$mediaImage) {
+                    return back()->withErrors(['cover_image_id' => 'Choose an image from your church media library.'])->withInput();
+                }
+                $path = $mediaImage->url;
             } elseif ($request->cover_image_path) {
                 $path = $request->cover_image_path;
             }
@@ -171,6 +205,31 @@ class SermonsController extends Controller
             //dd($path);
 
             $sermon->cover_image = $path;
+
+            if ($request->filled('youtube_url')) {
+                $youtubeResource = SermonLink::where('sermons_id', $sermon->id)
+                    ->where('church_id', Auth::user()->church_id)
+                    ->get()
+                    ->first(fn ($resource) => $resource->youtube_video_id);
+
+                if (!$youtubeResource) {
+                    $youtubeResource = new SermonLink;
+                    $youtubeResource->church_id = Auth::user()->church_id;
+                    $youtubeResource->user_id = Auth::id();
+                    $youtubeResource->sermons_id = $sermon->id;
+                    $youtubeResource->title = $sermon->title;
+                    $youtubeResource->date = now();
+                }
+
+                $previousYoutubeThumbnail = $youtubeResource->youtube_thumbnail_url;
+                $youtubeResource->video_link = trim($request->input('youtube_url'));
+                $youtubeResource->save();
+
+                if ((!$path || ($previousYoutubeThumbnail && $path === $previousYoutubeThumbnail)) && $youtubeResource->youtube_thumbnail_url) {
+                    $path = $youtubeResource->youtube_thumbnail_url;
+                    $sermon->cover_image = $path;
+                }
+            }
 
             $sermon->save();
 

@@ -2,6 +2,10 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Church;
+use App\Models\ChurchBranch;
+use App\Models\Country;
+use App\Support\CountryPhoneCode;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +32,22 @@ Route::post('/guest/create','Api\Guest\LoginController@store');
 Route::post('/guest/login','Api\Guest\LoginController@login');
 
 Route::get('/apk/church','Api\ApkController@index');
+
+Route::get('/registration/options/{church_id}', function ($churchId) {
+    $church = Church::query()->findOrFail($churchId);
+    $branches = ChurchBranch::query()->forChurch($church->id)->active()->orderByDesc('is_headquarters')->orderBy('name')
+        ->get(['id', 'name', 'address', 'is_headquarters']);
+    $countries = Country::query()->where('status', 1)->whereNotNull('tel_prefix')->orderByRaw("CASE WHEN tel_prefix = '254' THEN 0 ELSE 1 END")
+        ->orderBy('name')->get(['name', 'short_name', 'tel_prefix']);
+    $countries->each(fn ($country) => $country->tel_prefix = CountryPhoneCode::for($country));
+
+    return response()->json([
+        'church_id' => $church->id,
+        'default_branch_id' => $branches->firstWhere('is_headquarters', true)?->id,
+        'branches' => $branches,
+        'countries' => $countries,
+    ]);
+});
 
 Route::group([
 	'prefix' => 'v2',

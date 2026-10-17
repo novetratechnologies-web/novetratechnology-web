@@ -16,7 +16,7 @@ class GroupPost extends JsonResource
     {
         $path = '';
         if ($this->attachments && $this->attachment_type === 'image') {
-            $path = asset('storage/' . $this->attachments);
+            $path = app(\App\Support\PublicFileUrl::class)->resolve($this->attachments);
         }
 
         return [

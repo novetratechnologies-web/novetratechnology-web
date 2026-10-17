@@ -1,8 +1,9 @@
-@extends('layouts.donateempty')
+@extends('layouts.app')
 
 @section('title', 'Donate')
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/donation.css') }}?v=1">
 <style>
     [x-cloak] {
         display: none !important;
@@ -49,11 +50,33 @@ $gatewayIcons = [
 
 @endphp
 
-<div class="max-w-2xl mx-auto" x-data="donationApp()" x-init="boot()">
+@php
+    $donorProfile = optional(optional($user)->userprofile);
+    $donorName = trim(($donorProfile->firstname ?? '') . ' ' . ($donorProfile->lastname ?? '')) ?: (optional($user)->name ?? '');
+    $isSignedInDonor = auth()->check();
+    $donorBranch = optional(optional($user)->branch)->name;
+@endphp
+<div class="giving-page {{ $isSignedInDonor ? 'giving-page--member' : 'giving-page--visitor' }}" x-data="donationApp()" x-init="boot()">
+    <section class="giving-hero">
+        <div class="giving-hero-copy">
+            <span class="giving-eyebrow">{{ $isSignedInDonor ? 'YOUR GIVING' : 'GIVE TO IGM' }}</span>
+            <h1>{{ $isSignedInDonor ? 'Give with purpose, ' . \Illuminate\Support\Str::before($donorName, ' ') : 'Your generosity changes lives.' }}</h1>
+            <p>{{ $isSignedInDonor ? 'Thank you for being part of this church family. Your giving history is kept with your account.' : 'Every gift helps us preach the Word, serve our community, and strengthen the church.' }}</p>
+            @if($isSignedInDonor)
+                <div class="giving-member-chip"><span class="giving-member-avatar">{{ strtoupper(substr($donorName, 0, 1)) }}</span><span><strong>{{ $donorName }}</strong><small>{{ $donorBranch ? $donorBranch . ' · ' : '' }}Member account</small></span></div>
+            @else
+                <div class="giving-visitor-note"><span aria-hidden="true">✦</span><span>You can give as a visitor. No church account is required.</span></div>
+            @endif
+        </div>
+        <div class="giving-hero-mark" aria-hidden="true"><span>IGM</span><small>GIVE • SERVE • GROW</small><i>✦</i></div>
+    </section>
+
+    <div class="giving-layout">
+        <div class="giving-main">
 
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Give / Donate</h1>
-        <p class="text-sm text-gray-500 mt-1">Your generosity makes a difference. Every gift is appreciated.</p>
+        <h2 class="text-2xl font-bold text-gray-800">Make a gift</h2>
+        <p class="text-sm text-gray-500 mt-1">Choose what you’d like to support and your preferred payment method.</p>
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -111,6 +134,16 @@ $gatewayIcons = [
                     class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
                     placeholder="Any message with your donation…"></textarea>
             </div>
+            @unless($isSignedInDonor)
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1" for="visitor-donor-email">
+                        Email address <span class="font-normal normal-case text-gray-400">(needed for card payments)</span>
+                    </label>
+                    <input id="visitor-donor-email" type="email" x-model.trim="donorEmail" autocomplete="email"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        placeholder="you@example.com">
+                </div>
+            @endunless
         </div>
 
         {{-- ── STEP 3: Payment Method ───────────────────────────────── --}}
@@ -218,11 +251,27 @@ $gatewayIcons = [
         </form>
 
     </div>{{-- /card --}}
+        </div>
+
+        <aside class="giving-aside">
+            <div class="giving-aside-card">
+                <span class="giving-aside-icon">✦</span>
+                <h2>{{ $isSignedInDonor ? 'Your giving, together' : 'A meaningful difference' }}</h2>
+                <p>{{ $isSignedInDonor ? 'As a member, you can return here anytime to view your recorded gifts and continue supporting the ministry.' : 'Your contribution supports ministry work, community outreach, and the day-to-day life of the church.' }}</p>
+                @if($isSignedInDonor)
+                    <a href="{{ route('member.home') }}" class="giving-aside-link">Back to my account <span>→</span></a>
+                @else
+                    <a href="{{ route('web.about') }}" class="giving-aside-link">Learn about our mission <span>→</span></a>
+                @endif
+            </div>
+            <div class="giving-secure-note"><span>✓</span><p><strong>Secure giving</strong><br>Payments are processed using the selected payment provider.</p></div>
+        </aside>
+    </div>
 
     {{-- ── HISTORY ──────────────────────────────────────────────────── --}}
-    @if($donations->count() > 0)
-    <div class="mt-8">
-        <h2 class="text-base font-semibold text-gray-700 mb-3">My Donation History</h2>
+    @if($isSignedInDonor && $donations->count() > 0)
+    <div class="giving-history">
+        <div class="giving-history-heading"><div><span class="giving-eyebrow">MEMBER ACCOUNT</span><h2>My giving history</h2><p>Your recent gifts linked to this account.</p></div><span class="giving-history-count">{{ $donations->count() }} {{ \Illuminate\Support\Str::plural('gift', $donations->count()) }}</span></div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
             @foreach($donations as $d)
             <div class="flex items-center justify-between px-5 py-3.5">
@@ -273,6 +322,8 @@ $gatewayIcons = [
             note: '',
             selectedId: payaccounts.length === 1 ? payaccounts[0].id : null,
             mpesaPhone: '',
+            donorEmail: @json(optional($user)->email ?? ''),
+            donorName: @json($donorName ?: 'Church visitor'),
             loading: false,
             statusMsg: '',
             statusErr: false,
@@ -424,6 +475,11 @@ $gatewayIcons = [
                     this.submitOffline(null);
                     return;
                 }
+                if (['paystack', 'flutterwave'].includes(gw.gatewayname)
+                    && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.donorEmail)) {
+                    this.gatewayError = 'Enter a valid email address for this card payment.';
+                    return;
+                }
 
                 if (gw.gatewayname === 'paystack') {
                     this.payWithPaystack(gw);
@@ -471,7 +527,7 @@ $gatewayIcons = [
                 var self = this;
                 var handler = PaystackPop.setup({
                     key: gw.public_key,
-                    email: '{{ $user->email }}',
+                    email: self.donorEmail,
                     amount: Math.round(self.finalAmount() * 100),
 
                     currency: gw.currency || 'NGN',
@@ -492,8 +548,8 @@ $gatewayIcons = [
                     amount: self.finalAmount(),
                     currency: gw.currency || 'NGN',
                     customer: {
-                        email: '{{ $user->email }}',
-                        name: '{{ trim(optional(Auth::user()->userprofile)->firstname . " " . optional(Auth::user()->userprofile)->lastname) ?: Auth::user()->name }}',
+                        email: self.donorEmail,
+                        name: self.donorName,
                     },
                     customizations: {
                         title: 'Church Donation',

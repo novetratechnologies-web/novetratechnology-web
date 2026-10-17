@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api\Guest;
 use App\Http\Resources\API\Guest\Events as EventResource;
 use App\Http\Controllers\Controller;
 use App\Models\Events;
+use App\Support\BranchFeed;
 
 
 class EventsController extends Controller
 {
     public function index($church_id)
     {
-        $events = Events::where('church_id', $church_id)->get();
+        $query = Events::where('church_id', $church_id);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $church_id));
+        $events = $query->get();
 
         $events = EventResource::collection($events);
 
@@ -20,7 +23,9 @@ class EventsController extends Controller
 
     public function show($church_id, $id)
     {
-        $event = Events::where([['church_id', $church_id], ['id', $id]])->first();
+        $query = Events::where([['church_id', $church_id], ['id', $id]]);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $church_id));
+        $event = $query->firstOrFail();
 
         return [
             'id'            =>  $event->id,

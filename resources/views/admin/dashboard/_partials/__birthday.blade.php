@@ -1,6 +1,4 @@
-<div class="w-full">
-    <h1 class="text-sm uppercase text-gray-800 font-semibold mb-2">Today's Birthday</h1>
-    <div class="w-full bg-white rounded shadow p-2 dashboard-content">
-        <view-birthday url="{{ url('/') }}"></view-birthday>
-    </div>
-</div>
+<section class="cd-component cd-special-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-gold"><i class="fas fa-cake-candles"></i></span><div><h3>Birthdays today</h3><p>Celebrate your people</p></div></div></header>
+    <view-birthday url="{{ url('/') }}"></view-birthday>
+</section>

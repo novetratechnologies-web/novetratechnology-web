@@ -1,113 +1,75 @@
-
 <template>
-  <div class=""> <!-- container mx-auto -->
-    <h1 class="admin-h1 mb-3">Change Avatar</h1>
-    <div class="bg-white shadow border border-grey p-5">
-      <div v-if="this.success!=null" class="alert alert-success font-muller text-hayvn-purple" id="success-alert">{{this.success}}</div>
-      <div class="flex flex-wrap">
-        <div class="w-24 mr-4">
-          <img v-bind:src="this.avatar" class="img-responsive" height="70" width="90">
-        </div>
-        <div class="w-24" v-if="image">
-          <img :src="image" class="img-responsive h-full">
-        </div>
+  <div class="profile-form-shell profile-avatar-settings">
+    <div v-if="success" class="profile-feedback profile-feedback-success" role="status"><i class="fa-solid fa-circle-check"></i>{{ success }}</div>
+    <div v-if="formError" class="profile-feedback profile-feedback-error" role="alert"><i class="fa-solid fa-circle-exclamation"></i>{{ formError }}</div>
+
+    <div class="profile-photo-layout">
+      <div class="profile-photo-preview-wrap">
+        <img :src="preview || avatar || fallbackAvatar" class="profile-photo-preview" alt="Profile photo preview" @error="useFallback">
+        <span class="profile-photo-edit-mark"><i class="fa-solid fa-camera"></i></span>
       </div>
-      <div class="row">
-        <div class="my-3">
-          <input type="file" @change="OnFileSelected" id="image" class="new form-control">
-          <label class="cursor-pointer flex p-1 border border-dashed w-full lg:w-56 md:w-56" for="image">
-            <figure>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 17" class="w-6 h-6 mx-2">
-                <path d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z" fill="#3490dc"></path>
-              </svg>
-            </figure>
-            <span class="font-semibold my-1">Choose File</span>
-          </label>
-          <span v-if="errors.avatar"><small class="text-muller text-red">{{errors.avatar}}</small></span>
-        </div>
-        <div class="flex">
-          <a href="#" class="btn btn-primary submit-btn" @click.prevent="uploadImage()">Upload</a>
-        </div>
+      <div class="profile-photo-copy">
+        <h3>Make it easy to recognize you</h3>
+        <p>Upload a recent, well-lit photo. Use a JPG, PNG or WebP image up to 5 MB.</p>
+        <label class="profile-upload-button" for="admin-profile-avatar"><i class="fa-solid fa-arrow-up-from-bracket"></i> Choose a photo</label>
+        <input id="admin-profile-avatar" ref="fileInput" class="profile-file-input" type="file" accept="image/jpeg,image/png,image/webp" @change="onFileSelected">
+        <small v-if="selectedFile" class="profile-selected-file"><i class="fa-regular fa-image"></i> {{ selectedFile.name }} · {{ formatSize(selectedFile.size) }}</small>
+        <small v-if="errors.avatar" class="profile-field-error">{{ firstError(errors.avatar) }}</small>
       </div>
+    </div>
+
+    <div class="profile-form-actions profile-photo-actions">
+      <span><i class="fa-solid fa-circle-info"></i> Your photo updates across the admin panel after it is saved.</span>
+      <button type="button" class="profile-save-button" :disabled="!selectedFile || uploading" @click="uploadImage"><i :class="uploading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-check'"></i>{{ uploading ? 'Uploading…' : 'Save photo' }}</button>
     </div>
   </div>
 </template>
 
 <script>
-
 import axios from 'axios';
 
 export default {
-  props:['url'],
-  data(){
-    return {
-      image: '',
-      avatar:'',
-      errors:[],
-      trans:[],
-      success:null,
-    }
+  props: ['url'],
+  data() {
+    return { avatar: '', preview: '', selectedFile: null, errors: {}, success: null, formError: null, uploading: false, fallbackAvatar: (this.url || '') + '/uploads/user/avatar/default-user.jpg' };
   },
-  methods: 
-  {
-    getdata()
-    {
-      axios.get('/admin/getavatar').then(response => {
-        this.avatar   = response.data.avatar;
-        //console.log(response.data)
-      });
+  methods: {
+    async getData() {
+      try { const response = await axios.get('/admin/getavatar'); this.avatar = response.data.avatar || this.fallbackAvatar; }
+      catch (error) { this.avatar = this.fallbackAvatar; this.formError = 'We could not load your current photo. You can still choose and save a new one.'; }
     },
-
-    OnFileSelected(event)
-    {
-      this.avatar=event.target.files[0];
-      let files = event.target.files || event.dataTransfer.files;
-      if (!files.length)
-        return;
-      this.createImage(files[0]);
-    },
-
-    createImage(file) 
-    {
-      let reader = new FileReader();
-      let vm = this;
-      reader.onload = (e) => {
-        vm.image = e.target.result;
-      };
+    onFileSelected(event) {
+      this.errors = {}; this.success = null; this.formError = null;
+      const file = event.target.files && event.target.files[0];
+      this.selectedFile = null; this.preview = '';
+      if (!file) return;
+      const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowed.includes(file.type)) { this.errors = { avatar: ['Choose a JPG, PNG or WebP image.'] }; event.target.value = ''; return; }
+      if (file.size > 5 * 1024 * 1024) { this.errors = { avatar: ['The image must be 5 MB or smaller.'] }; event.target.value = ''; return; }
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = result => { this.preview = result.target.result; };
       reader.readAsDataURL(file);
     },
-
-    uploadImage()
-    {
-      this.errors=[];
-      if(this.avatar==null) this.errors["avatar"] = "Required";
-      const fd=new FormData();
-
-      fd.append('avatar',this.avatar);
-
-      axios.post('/admin/changeavatar',fd).then(response => {
-        this.success = response.data.message;
-		    this.avatar = response.data.avatar;
-        this.image= '';     
-		  }).catch(error => {
-		    this.errors = error.response.data.errors;
-		  });
-    }
+    async uploadImage() {
+      if (!this.selectedFile || this.uploading) return;
+      this.errors = {}; this.formError = null; this.success = null; this.uploading = true;
+      const data = new FormData(); data.append('avatar', this.selectedFile);
+      try {
+        const response = await axios.post('/admin/changeavatar', data);
+        this.avatar = response.data.avatar || this.preview; this.preview = ''; this.selectedFile = null;
+        if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+        this.success = response.data.message || 'Your profile photo has been updated.';
+        window.dispatchEvent(new CustomEvent('admin-profile-photo-updated', { detail: { avatar: this.avatar } }));
+      } catch (error) {
+        this.errors = error.response && error.response.data && error.response.data.errors ? error.response.data.errors : {};
+        this.formError = error.response && error.response.data && error.response.data.message ? error.response.data.message : 'The photo could not be saved. Please try again.';
+      } finally { this.uploading = false; }
+    },
+    useFallback(event) { if (event.target.src !== this.fallbackAvatar) event.target.src = this.fallbackAvatar; },
+    firstError(value) { return Array.isArray(value) ? value[0] : value; },
+    formatSize(bytes) { return bytes < 1024 * 1024 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB'; }
   },
-  created()
-  {
-    this.getdata(); 
-  }     
-}
+  created() { this.getData(); }
+};
 </script>
-<style>
-  .new
-  {
-    width: 0.1px;
-    height: 0.1px;
-    opacity: 0;
-    overflow: hidden;
-    position: absolute;
-    z-index: -1;
-  }
-</style>

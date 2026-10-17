@@ -8,14 +8,20 @@
                 <h2 class="lg:text-xl text-left text-blue-700">Manage your church members and membership easily and also
                     manage the Events, Activities and Church Website.</h2>
                 <div class="pt-8 pb-5 flex mx-auto justify-start">
-                    @if (Auth::user()->usergroup_id == 3 || Auth::user()->usergroup_id == 5)
+                    @auth
+                    @if (in_array((int) Auth::user()->usergroup_id, [1, 2, 3, 4], true))
                         <a href="{{ url('/admin/dashboard') }}"
-                            class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Go
-                            To Admin Panel</a>
-                    @elseif(Auth::user()->usergroup_id == 6)
-                        <a href="{{ url('/preacher/dashboard') }}"
-                            class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Go
-                            To Preacher Panel</a>
+                            class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Open
+                            Administration Portal</a>
+                    @elseif ((int) Auth::user()->usergroup_id === 5)
+                        <a href="{{ url('/member/home') }}"
+                            class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Open
+                            My Church Account</a>
+                    @else
+                        <a href="{{ route('web.home') }}"
+                            class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Visit
+                            IGM Church</a>
+                    @endif
                     @else
                         <a href="{{ url('/register') }}"
                             class="button px-5 py-3 bg-blue-900 rounded-full mr-2 text-lg text-white tracking-wide">Register
@@ -53,7 +59,7 @@
                             </svg> <p>Download Android App</p>
                             </div>
                        </a>
-                    @endif
+                    @endauth
 
                 </div>
 

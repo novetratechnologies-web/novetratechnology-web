@@ -53,7 +53,7 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/member/home';
+    protected $redirectTo = '/admin/dashboard';
 
     /**
      * Create a new controller instance.

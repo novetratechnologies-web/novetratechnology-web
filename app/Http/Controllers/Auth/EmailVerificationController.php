@@ -29,15 +29,31 @@ class EmailVerificationController extends Controller
         if (!is_null(Auth::id()))
         {
           \Session::put('successmessage','E-mail Verified Successfully,Login Now');
-          return redirect()->to('/home');
+          return in_array((int) Auth::user()->usergroup_id, [1, 2, 3, 4], true)
+            ? redirect('/admin/dashboard')
+            : redirect('/member/home');
         }
         \Session::put('successmessage','E-mail Verified Successfully,Login Now');
-        return redirect()->to('login');
+        return in_array((int) $user->usergroup_id, [1, 2, 3, 4], true)
+          ? redirect()->route('admin.login')
+          : redirect()->route('web.guest.login');
       }
       $user->email_verified = 1;
       $user->email_verified_at = Carbon::now();
 
       $user->save();
+
+      if (Auth::check()) {
+        return in_array((int) Auth::user()->usergroup_id, [1, 2, 3, 4], true)
+          ? redirect('/admin/dashboard')
+          : redirect('/member/home');
+      }
+
+      $loginRoute = in_array((int) $user->usergroup_id, [1, 2, 3, 4], true)
+        ? 'admin.login'
+        : 'web.guest.login';
+
+      return redirect()->route($loginRoute)->with('success', 'Email verified. You can now sign in.');
     }
   }
 }

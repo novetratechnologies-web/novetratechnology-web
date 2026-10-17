@@ -54,7 +54,7 @@ $to = [0, 0, 255];
                                     @endphp
 
 
-              <img src="data:image/png;base64, {!! base64_encode(QrCode::eye('square')->format('png')
+              <img src="data:image/svg+xml;base64, {!! base64_encode(QrCode::eye('square')->format('svg')
     ->eye('circle')
     ->color(0, 0, 0)  
     ->margin(1)
@@ -94,7 +94,7 @@ $to = [0, 0, 255];
                     <img src="{{ Auth::user()->ChurchLogoPath }}" style="height:55px;"  class="w-32 h-32 border-4 border-white" alt="Logo" style="height: 120px; margin: 0">
                 
         @else
-        <img src="{{ asset('images/church_cms_logo.jpg') }}" style="height:55px;"  class="w-32 h-32 border-4 border-white" alt="Logo" style="height: 120px; margin: 0">
+        <img src="{{ app(\App\Support\PublicFileUrl::class)->resolve(config('settings.logo') ?: 'uploads/brand/igm-church-logo.png') }}" class="w-32 h-auto" alt="IGM Church" style="max-height: 120px; margin: 0">
         @endif
       </td>
           <td style="">
@@ -106,7 +106,7 @@ $to = [0, 0, 255];
                              $url=url('/admin/attandance/'.$user->name);
                                     @endphp
 
-             <img src="data:image/png;base64, {!! base64_encode(QrCode::eye('square')->format('png')
+             <img src="data:image/svg+xml;base64, {!! base64_encode(QrCode::eye('square')->format('svg')
     ->eye('circle')
     ->color(0, 0, 0)  
     ->margin(1)
@@ -169,7 +169,8 @@ $to = [0, 0, 255];
             <p
               style="margin-bottom: 0em !important; margin-top: 2px !important"
             >
-              <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;"> {{ strtoupper($user->userprofile->address) }},{{strtoupper($user->userprofile->city->name)}} {{strtoupper($user->userprofile->state->name)}} ,{{strtoupper($user->userprofile->country->name)}}</span>
+              @php $address = collect([$user->userprofile?->address, $user->userprofile?->city?->name, $user->userprofile?->state?->name, $user->userprofile?->country?->name])->filter(fn ($part) => filled($part))->map(fn ($part) => strtoupper($part))->implode(', '); @endphp
+              <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;">{{ $address ?: 'Address not provided' }}</span>
             </p>
               <p
               style="margin-bottom: 0em !important; margin-top: 5px !important"

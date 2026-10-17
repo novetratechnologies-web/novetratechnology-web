@@ -21,8 +21,10 @@ Route::group([
     'namespace'  => 'WebBuilder',
 ], function () {
     Route::get('/', 'HomeController@index')->name('web.home');
+    Route::get('/about-us', 'PageController@about')->name('web.about');
     Route::get('/pages',                           'PageController@index')->name('web.pages');
     Route::get('/page/{category_slug}/{page_slug}', 'PageController@show')->name('web.page');
+    Route::get('/ministries', 'MinistryController@index')->name('web.ministries');
     Route::get('/posts',         'PostController@index')->name('web.posts');
     Route::get('/post/{id}',           'PostController@show')->name('web.post');
     Route::post('/post/{id}/comment', 'PostController@storeComment')->name('web.post.comment')->middleware(['throttle:20,1', 'webguest']);
@@ -35,10 +37,11 @@ Route::group([
     Route::get('/gallery/{id}',  'GalleryController@show')->name('web.gallery.show');
     Route::get('/sermons',       'SermonController@index')->name('web.sermons');
     Route::get('/sermon/{id}',   'SermonController@show')->name('web.sermon');
+    Route::get('/live',          'SermonController@live')->name('web.live');
     Route::get('/bulletins',         'BulletinController@index')->name('web.bulletins');
     Route::get('/bulletin/{id}',     'BulletinController@show')->name('web.bulletin.show');
     Route::get('/prayer-requests',  'PrayerRequestController@index')->name('web.prayer');
-    Route::post('/prayer-requests', 'PrayerRequestController@store')->name('web.prayer.store')->middleware(['throttle:10,1', 'webguest']);
+    Route::post('/prayer-requests', 'PrayerRequestController@store')->name('web.prayer.store')->middleware('throttle:10,1');
     Route::post('/prayer-requests/{id}/lift', 'PrayerRequestController@lift')->name('web.prayer.lift')->middleware('throttle:30,1');
     Route::get('/help-requests',    'HelpRequestController@index')->name('web.help');
     Route::post('/help-requests',   'HelpRequestController@store')->name('web.help.store')->middleware(['throttle:10,1', 'webguest']);
@@ -73,6 +76,21 @@ Auth::routes(['verify' => true, 'register' => false]);
 
 Auth::routes();
 
+// Keep staff sign-in separate from the member and guest website login.
+Route::get('/admin/login', [\App\Http\Controllers\Auth\AdminLoginController::class, 'showLoginForm'])
+    ->middleware('guest')->name('admin.login');
+Route::post('/admin/login', [\App\Http\Controllers\Auth\AdminLoginController::class, 'login'])
+    ->middleware(['guest', 'throttle:10,1'])->name('admin.login.store');
+Route::post('/admin/logout', [\App\Http\Controllers\Auth\AdminLoginController::class, 'logout'])
+    ->middleware(['auth', 'adminportal'])->name('admin.logout');
+
+Route::middleware(['auth', 'churchmember'])->group(function () {
+    Route::get('/account/communication-preferences', [\App\Http\Controllers\CommunicationPreferenceController::class, 'edit'])
+        ->name('communication-preferences.edit');
+    Route::put('/account/communication-preferences', [\App\Http\Controllers\CommunicationPreferenceController::class, 'update'])
+        ->name('communication-preferences.update');
+});
+
 //Route::get('/checksms', 'ContactController@checksms');
 
 
@@ -84,14 +102,14 @@ Route::group(['prefix' => 'nova-api', 'middleware' => ['auth', 'nova']], functio
 });
 
 //subscription - nova
-Route::get('/payment/subscription', 'Admin\PaymentController@Subscription');
+Route::get('/payment/subscription', 'Admin\PaymentController@Subscription')->middleware(['auth', 'adminportal']);
 
 
-Route::get('/mygroup/{group_id}', 'Member\MemberController@groupDetails')->name('mygroupdetails');
+Route::get('/mygroup/{group_id}', 'Member\MemberController@groupDetails')->middleware(['auth', 'churchmember'])->name('mygroupdetails');
 //member
 Route::group(['prefix' => 'member', 'middleware' => ['auth', 'churchmember'], 'namespace' => 'Member'], function () {
 
-    Route::get('/home', 'HomeController@index')->name('home');
+    Route::get('/home', 'HomeController@index')->name('member.home');
     Route::get('/change-password', 'HomeController@changePassword')->name('member.change-password');
     Route::get('/familytree/{name}', 'HomeController@familytree');
     Route::get('/show/details/{name}', 'HomeController@showDetails');
@@ -152,9 +170,30 @@ Route::get('/privacy-policy', 'AboutController@terms');
 
 //permissions
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal'], 'namespace' => 'Admin'], function () {
 
     Route::get('/dashboard', 'DashboardController@index')->name('dashboard');
+
+    Route::get('/communications/services', 'CommunicationSettingsController@index')
+        ->name('admin.communication.services');
+    Route::post('/communications/services', 'CommunicationSettingsController@store')
+        ->name('admin.communication.services.store');
+    Route::put('/communications/services/{id}', 'CommunicationSettingsController@update')
+        ->name('admin.communication.services.update');
+    Route::delete('/communications/services/{id}', 'CommunicationSettingsController@destroy')
+        ->name('admin.communication.services.destroy');
+    Route::get('/communications/deliveries', 'CommunicationDeliveryController@index')
+        ->name('admin.communication.deliveries');
+    Route::get('/communications', 'CommunicationWorkspaceController@index')
+        ->name('admin.communication.index');
+    Route::post('/communications/campaigns', 'CommunicationWorkspaceController@storeCampaign')
+        ->name('admin.communication.campaigns.store');
+    Route::delete('/communications/campaigns/{id}', 'CommunicationWorkspaceController@destroyCampaign')
+        ->name('admin.communication.campaigns.destroy');
+    Route::post('/communications/campaigns/{id}/retry', 'CommunicationWorkspaceController@retryCampaign')
+        ->name('admin.communication.campaigns.retry');
+    Route::delete('/communications/templates/{id}', 'CommunicationWorkspaceController@destroyTemplate')
+        ->name('admin.communication.templates.destroy');
 
     Route::get('/dashboard/birthdayUser', 'BirthdayController@birthdayUser');
     Route::get('/dashboard/birthday', 'BirthdayController@birthday');
@@ -185,7 +224,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'namespace' => 'Adm
     Route::get('/links/download/{id}', 'SermonLinkController@getDownload');
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-members'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-members'], 'namespace' => 'Admin'], function () {
 
     Route::get('/members', 'UserController@index');
     Route::get('/members/find', 'UserController@find');
@@ -211,7 +250,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-members'], 
     Route::get('/notes/edit/{id}', ['middleware' => ['permission:update-members'], 'uses' => 'NotesController@edit']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-events'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-events'], 'namespace' => 'Admin'], function () {
 
     Route::get('/events', 'EventsController@index');
     Route::get('/events/show', 'EventsController@events');
@@ -238,7 +277,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-events'], '
     Route::get('/events/showdetails/{id}', 'EventsController@showdetails');
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-bulletins'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-bulletins'], 'namespace' => 'Admin'], function () {
 
     //Bulletins
     Route::get('/bulletins', 'BulletinsController@index');
@@ -258,13 +297,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-bulletins']
     Route::get('/bulletin/download/{id}', ['middleware' => ['permission:view-bulletins'], 'uses' => 'BulletinsController@downloadattachments']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-files'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-files'], 'namespace' => 'Admin'], function () {
 
     Route::get('/videos', ['middleware' => ['permission:view-files'], 'uses' => 'VideoController@create']);
     Route::post('/videos', ['middleware' => ['permission:create-files'], 'uses' => 'VideoController@store']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-groups'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-groups'], 'namespace' => 'Admin'], function () {
 
     Route::get('/groups', 'GroupsController@index');
 
@@ -283,7 +322,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-groups'], '
     Route::post('/group/editMember/{id}', ['middleware' => ['permission:update-groups'], 'uses' => 'GroupLinksController@update']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-gallery'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-gallery'], 'namespace' => 'Admin'], function () {
 
     Route::get('/gallery', 'GalleryController@index');
 
@@ -301,14 +340,14 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-gallery'], 
 
 
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-quotes'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-quotes'], 'namespace' => 'Admin'], function () {
 
     Route::get('/quote/add', ['middleware' => ['permission:create-quotes'], 'uses' => 'QuotesController@create']);
     Route::post('/quote/add', ['middleware' => ['permission:create-quotes'], 'uses' => 'QuotesController@store']);
 });
 
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-funds'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-funds'], 'namespace' => 'Admin'], function () {
 
     Route::get('/funds', ['middleware' => ['permission:create-funds'], 'uses' => 'FundController@index']);
     Route::post('/funds', ['middleware' => ['permission:create-funds'], 'uses' => 'FundController@store']);
@@ -319,7 +358,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-funds'], 'n
 });
 
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-reports'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-reports'], 'namespace' => 'Admin'], function () {
 
     Route::get('/reports', ['middleware' => ['permission:read-reports'], 'uses' => 'ReportsController@report']);
 
@@ -330,7 +369,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-reports'], 
     Route::get('/report/suspendedMembers', ['middleware' => ['permission:view-reports'], 'uses' => 'ReportsController@exportSuspendedMembers']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['permission:read-payments'], 'namespace' => 'Admin'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'adminportal', 'permission:read-payments'], 'namespace' => 'Admin'], function () {
 
     Route::get('/payment/index/{id}', ['middleware' => ['permission:create-payments'], 'uses' => 'PaymentController@index']);
     Route::post('/payment/response', ['middleware' => ['permission:create-payments'], 'uses' => 'PaymentController@response']);

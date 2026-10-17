@@ -51,4 +51,11 @@ class StripeService
     {
         return ($result['status'] ?? '') === 'succeeded';
     }
+
+    public function matchesPayment(array $result, float $amount, string $currency): bool
+    {
+        return $this->isSuccessful($result)
+            && (int) ($result['amount_received'] ?? $result['amount'] ?? 0) === (int) round($amount * 100)
+            && strtolower((string) ($result['currency'] ?? '')) === strtolower($currency);
+    }
 }

@@ -40,6 +40,21 @@ return [
          'token' => env('TWILIO_TOKEN'),
          'key' => env('TWILIO_KEY'),
          'secret' => env('TWILIO_SECRET')
-      ]
+      ],
+
+    'hostpinnacle' => [
+        'endpoint' => env('HOSTPINNACLE_SMS_ENDPOINT', 'https://smsportal.hostpinnacle.co.ke/SMSApi/send'),
+        'api_key' => env('HOSTPINNACLE_API_KEY'),
+        'sender_id' => env('HOSTPINNACLE_SENDER_ID'),
+        'enabled' => env('SMS_STATUS', 'off') === 'on',
+    ],
+
+    'streaming' => [
+        'ingest_url' => env('STREAM_INGEST_URL'),
+        'playback_url' => env('STREAM_PLAYBACK_URL'),
+        'path_prefix' => trim(env('STREAM_PATH_PREFIX', 'live'), '/'),
+        'auth_username_prefix' => env('STREAM_AUTH_USERNAME_PREFIX', 'igm-church-'),
+        'webhook_token' => env('STREAM_WEBHOOK_TOKEN'),
+    ],
 
 ];

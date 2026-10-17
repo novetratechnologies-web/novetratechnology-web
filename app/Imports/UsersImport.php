@@ -1,112 +1,141 @@
 <?php
-   
+
 namespace App\Imports;
 
-use Maatwebsite\Excel\Concerns\WithHeadingRow;  
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Collection;
-
-use App\Traits\RegisterUser;
+use App\Models\City;
 use App\Models\Country;
 use App\Models\State;
-use App\Models\City;
 use App\Models\User;
+use App\Traits\RegisterUser;
 use Carbon\Carbon;
-use Exception;
-    
-class UsersImport implements ToCollection , WithHeadingRow
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+
+class UsersImport implements ToCollection, WithHeadingRow
 {
     use RegisterUser;
 
-    public function collection(Collection $rows)
+    private int $insertedCount = 0;
+    private int $skippedCount = 0;
+
+    public function collection(Collection $rows): void
     {
-        try 
-        {
-            $church_id = Auth::user()->church_id;
-            $user_count = User::ByRole(5)->ByChurch($church_id)->count();
-            
-            $count =$user_count;
+        $admin = Auth::user();
+        abort_unless($admin && $admin->church_id, 403, 'A church administrator must be signed in to import members.');
 
-            if( (count($rows)>0) && (count($rows)<=($count)) )
-            {
-                $church_id = Auth::user()->church_id;
-                $user_count = User::ByRole(5)->ByChurch($church_id)->count();
-                
-                $count = $user_count;
+        foreach ($rows as $row) {
+            $mobile = trim((string) ($row['mobile_no'] ?? ''));
+            $firstname = trim((string) ($row['firstname'] ?? ''));
 
-                if( (count($rows)>0) && (count($rows)<=($count)) )
-                {
-                    foreach ($rows as $row) 
-                    {
-                        $country = Country::where('name','LIKE','%'.$row['country'].'%')->first();
-                        $state = State::where('name','LIKE','%'.$row['state'].'%')->first();
-                        $city = City::where('name','LIKE','%'.$row['city'].'%')->first();
-                        if($row['membership_type'] == "member")
-                        {
-                            $membership_start_date  = Carbon::now()->format('Y-m-d');
-                            //$membership_end_date    = Carbon::now()->addMonth(1)->format('Y-m-d');
-                            $membership_end_date    = null;
-                        }
-                        else
-                        {
-                            $membership_start_date = null;
-                            $membership_end_date = null;
-                        }
+            if ($mobile === '' || $firstname === '') {
+                $this->skippedCount++;
+                continue;
+            }
 
-                        $request->ref_name              =  $row['ref_name'];
-                        $request->firstname             =  $row['firstname'];
-                        $request->lastname              =  $row['lastname'];
-                        $request->birth_firstname       =  $row['birth_firstname']; 
-                        $request->birth_lastname        =  $row['birth_lastname'];
-                        $request->gender                =  $row['gender']; 
-                        $request->date_of_birth         =  date('Y-m-d',strtotime($row['date_of_birth']));
-                        $request->profession            =  $row['occupation']; 
-                        $request->sub_occupation        =  $row['sub-category']; 
-                        $request->address               =  $row['address'];
-                        $request->city_id               =  $city->id;
-                        $request->state_id              =  $state->id; 
-                        $request->country_id            =  $country->id;
-                        $request->pincode               =  $row['pincode'];
-                        $request->mobile_no             =  $row['mobile_no'];
-                        $request->email                 =  $row['email'];
-                        $request->aadhar_number         =  $row['aadhar_number'];
-                        $request->membership_type       =  $row['membership_type'];
-                        $request->membership_start_date =  $membership_start_date;
-                        $request->family                =  $row['family']; 
-                        $request->marriage_status       =  $row['marriage_status'];
-                        $request->marriage_start_date   =  $row['marriage_start_date'];
-                        $request->relation              =  $row['relation'];
-                        $request->notes                 =  $row['notes']; 
-                        $request->status                =  "active";
-                  
-                        $mobile_no  = $row['mobile_no'];
-                        $avatar = '';
-                        $user=User::where(function($q) use($name,$email,$mobile_no)
-                        {
-                            $q->where('mobile_no',$mobile_no);
-                        })->exists();
-                        if(!$user)
-                        {
-                            $this->CreateUser($request,$church_id,$avatar,5);
-                            $insertedcount++;   
-                        }
-                        else
-                        {
-                            \Session::flash('failmessage','Mobile Number Already Exists');
-                        }          
-                    } 
-                    \Session::put('insertedcount',$insertedcount);      
-                }
-                else
-                {
-                    \Session::put('count',$count);
-                }
+            $alreadyExists = User::query()
+                ->where('church_id', $admin->church_id)
+                ->where('mobile_no', $mobile)
+                ->exists();
+
+            if ($alreadyExists) {
+                $this->skippedCount++;
+                continue;
+            }
+
+            $country = $this->findLocation(Country::class, $row['country'] ?? null);
+            $state = $this->findLocation(State::class, $row['state'] ?? null);
+            $city = $this->findLocation(City::class, $row['city'] ?? null);
+            $membershipType = strtolower(trim((string) ($row['membership_type'] ?? 'member')));
+            if (!in_array($membershipType, ['member', 'guest'], true)) {
+                $membershipType = 'member';
+            }
+
+            $email = trim((string) ($row['email'] ?? ''));
+            $refName = $this->nullableString($row['ref_name'] ?? null);
+            if ($refName !== null && !User::query()->where('church_id', $admin->church_id)->where('name', $refName)->exists()) {
+                $refName = null;
+            }
+            $name = 'member-' . Str::lower(Str::random(24));
+            $data = (object) [
+                'ref_name' => $refName,
+                'name' => $name,
+                'firstname' => $firstname,
+                'lastname' => $this->nullableString($row['lastname'] ?? null),
+                'birth_firstname' => $this->nullableString($row['birth_firstname'] ?? null),
+                'birth_lastname' => $this->nullableString($row['birth_lastname'] ?? null),
+                'gender' => $this->nullableString($row['gender'] ?? null),
+                'date_of_birth' => $this->parseDate($row['date_of_birth'] ?? null),
+                'profession' => $this->nullableString($row['occupation'] ?? $row['profession'] ?? null),
+                'sub_occupation' => $this->nullableString($row['sub_category'] ?? $row['sub-category'] ?? null),
+                'address' => $this->nullableString($row['address'] ?? null),
+                'city_id' => $city?->id,
+                'state_id' => $state?->id,
+                'country_id' => $country?->id,
+                'pincode' => $this->nullableString($row['pincode'] ?? null),
+                'mobile_no' => $mobile,
+                'email' => $email !== '' ? $email : null,
+                'aadhar_number' => $this->nullableString($row['aadhar_number'] ?? null),
+                'membership_type' => $membershipType,
+                'family' => $this->nullableString($row['family'] ?? null),
+                'marriage_status' => $this->nullableString($row['marriage_status'] ?? null),
+                'marriage_start_date' => $this->parseDate($row['marriage_start_date'] ?? null),
+                'marriage_end_date' => null,
+                'relation' => $this->nullableString($row['relation'] ?? null),
+                'notes' => $this->nullableString($row['notes'] ?? null),
+                'status' => 'active',
+                'was_baptized' => null,
+                'baptism_date' => null,
+                'facebook_id' => null,
+                'description' => null,
+            ];
+
+            if ($this->CreateUser($data, (int) $admin->church_id, '', 5)) {
+                $this->insertedCount++;
+            } else {
+                $this->skippedCount++;
             }
         }
-        catch(Exception $e)
-        {
-            //dd($e->getMessage());
+
+        session()->put('insertedcount', $this->insertedCount);
+        session()->put('skippedcount', $this->skippedCount);
+    }
+
+    public function insertedCount(): int
+    {
+        return $this->insertedCount;
+    }
+
+    public function skippedCount(): int
+    {
+        return $this->skippedCount;
+    }
+
+    private function findLocation(string $model, mixed $value): ?object
+    {
+        $value = $this->nullableString($value);
+        return $value === null ? null : $model::query()->where('name', 'LIKE', '%' . addcslashes($value, '%_\\') . '%')->first();
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+        return $value === '' ? null : $value;
+    }
+
+    private function parseDate(mixed $value): ?string
+    {
+        $value = $this->nullableString($value);
+        if ($value === null) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
         }
     }
 }

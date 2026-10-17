@@ -39,7 +39,7 @@ class LogSuccessfulLogin
         $this->doActivityLog(
             Auth::user(),
             Auth::user(),
-            ['ip' => $ip, 'details' => $_SERVER['HTTP_USER_AGENT'] ],
+            ['ip' => $ip, 'details' => request()->userAgent() ?? 'Unknown user agent'],
             LOGNAME_LOGIN,
             'Logged In'
         );

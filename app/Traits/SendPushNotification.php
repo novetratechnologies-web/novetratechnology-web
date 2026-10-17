@@ -2,12 +2,7 @@
 
 namespace App\Traits;
 
-use FCM;
-use LaravelFCM\Message\OptionsBuilder;
-use LaravelFCM\Message\PayloadDataBuilder;
-use LaravelFCM\Message\PayloadNotificationBuilder;
-use Exception;
-use Log;
+use App\Services\FcmHttpV1Client;
 
 /**
  * Trait SendPushNotification
@@ -36,46 +31,23 @@ trait SendPushNotification
    */
   public function sendNotification(array $array, string $usertoken): object
   {
-    try {
+    $type = (string) ($array['type'] ?? 'Notification');
+    $message = (string) ($array['message'] ?? '');
+    $result = app(FcmHttpV1Client::class)->send([
+      'token' => $usertoken,
+      'notification' => [
+        'title' => $type,
+        'body' => $message,
+      ],
+      'data' => [
+        'type' => $type,
+        'message' => $message,
+      ],
+    ]);
 
-      config(['fcm.http.server_key' => env('FCM_SERVER_KEY')]);
-      config(['fcm.http.sender_id' => env('FCM_SENDER_ID')]);
-
-      $optionBuilder       = new OptionsBuilder();
-      $optionBuilder->setTimeToLive(60 * 20);
-      $notificationBuilder = new PayloadNotificationBuilder($array['type']);
-      $notificationBuilder->setBody($array['message'])
-        ->setTitle($array['type'])
-        ->setSound('default');
-
-
-      // $dataBuilder          = new PayloadDataBuilder();
-      // $dataBuilder->addData(['message' => $array['message'], 'type' => $array['type']]);
-      // $option               = $optionBuilder->build();
-      // $notification         = $notificationBuilder->build();
-      // $data                 = $dataBuilder->build();
-      // $token                = $usertoken;
-      // $downstreamResponse   = FCM::sendTo($token, $option, $notification, $data);
-
-      //dd($downstreamResponse);
-
-      // $downstreamResponse->numberSuccess();
-      // $downstreamResponse->numberFailure();
-      // if ($downstreamResponse->numberSuccess()) {
-      //   return $downstreamResponse;
-      // } else {
-      //   return $downstreamResponse;
-      // }
-
-      return (object)[
-        'status' => false,
-        'message' => 'Notification failed'
-      ];
-    } catch (Exception $e) {
-      dd($e->getMessage());
-
-
-      Log::info($e->getMessage());
-    }
+    return (object) [
+      'status' => true,
+      'message' => $result['name'] ?? 'Notification sent',
+    ];
   }
 }

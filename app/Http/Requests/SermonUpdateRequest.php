@@ -27,6 +27,13 @@ class SermonUpdateRequest extends FormRequest
             //
             'title'       => 'required',
             'description' => 'required',
+            'youtube_url' => ['nullable', 'url', function ($attribute, $value, $fail) {
+                if (!$value) return;
+                $host = strtolower((string) parse_url($value, PHP_URL_HOST));
+                $validHost = in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com', 'youtu.be', 'www.youtu.be'], true);
+                $hasVideoId = preg_match('~(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:[^#]*&)?v=|embed/|live/|shorts/))([A-Za-z0-9_-]{11})~i', $value);
+                if (!$validHost || !$hasVideoId) $fail('Enter a valid YouTube watch, Shorts, or live URL.');
+            }],
             //'cover_image' => 'nullable|mimes:jpeg,jpg,bmp,png',
         ];
     }

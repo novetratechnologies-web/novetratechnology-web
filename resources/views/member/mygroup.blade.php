@@ -42,7 +42,7 @@
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
                     @if($grouplist->group->cover_image)
-                    <img src="{{url('storage/'.$grouplist->group->cover_image)}}" alt="">
+                    <img src="{{ $grouplist->group->CoverImagePath }}" alt="">
                     @endif
                 </div>
                 <div>

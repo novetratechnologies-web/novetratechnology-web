@@ -39,16 +39,16 @@ class GalleryController extends Controller
 
     public function index(Request $request)
     {
-        $gallery = Gallery::with('photos')->where('church_id', Auth::user()->church_id);
-        $count = Gallery::with('photos')->where('church_id', Auth::user()->church_id)->count();
+        $galleryQuery = Gallery::withCount('photos')->where('church_id', Auth::user()->church_id);
+        $count = (clone $galleryQuery)->count();
 
 
         $query = $request->get('search');
         if ($query != null) {
-            $gallery = $gallery->where('name', 'LIKE', '%' . $query . '%');
+            $galleryQuery->where('name', 'LIKE', '%' . $query . '%');
         }
 
-        $gallery = $gallery->get();
+        $gallery = $galleryQuery->latest()->get();
 
         //dd($gallery);
 
@@ -76,6 +76,7 @@ class GalleryController extends Controller
             //     $folder = Auth::user()->church_id.'/gallery/covers';
             //     $gallery->path = $this->uploadFile($folder,$file);
             // }
+            $path = $gallery->path ?? null;
             if ($request->cover_image_id && str_starts_with($request->cover_image_id, 'media_')) {
                 $mediaId    = str_replace('media_', '', $request->cover_image_id);
                 $mediaImage = \App\Models\MediaFile::where([
@@ -88,7 +89,7 @@ class GalleryController extends Controller
             } elseif ($request->cover_image_path) {
                 $path = $request->cover_image_path;
             }
-            $gallery->path =  $path;
+            $gallery->path = $path;
 
             $gallery->save();
 
@@ -130,7 +131,7 @@ class GalleryController extends Controller
 
     public function edit($id)
     {
-        $gallery = Gallery::where('id', $id)->first();
+        $gallery = Gallery::where('church_id', Auth::user()->church_id)->findOrFail($id);
 
         return view('admin.gallery.edit', ['gallery' => $gallery]);
     }
@@ -138,7 +139,7 @@ class GalleryController extends Controller
     public function update(GalleryUpdateRequest $request, $id)
     {
         try {
-            $gallery = Gallery::where('id', $id)->first();
+            $gallery = Gallery::where('church_id', Auth::user()->church_id)->findOrFail($id);
 
             $gallery->name         = $request->name;
             $gallery->description  = $request->description;
@@ -153,6 +154,7 @@ class GalleryController extends Controller
             // {
             //     $gallery->path = $gallery->path;
             // }
+            $path = $gallery->path ?? null;
             if ($request->cover_image_id && str_starts_with($request->cover_image_id, 'media_')) {
                 $mediaId    = str_replace('media_', '', $request->cover_image_id);
                 $mediaImage = \App\Models\MediaFile::where([
@@ -165,7 +167,7 @@ class GalleryController extends Controller
             } elseif ($request->cover_image_path) {
                 $path = $request->cover_image_path;
             }
-            $gallery->path =  $path;
+            $gallery->path = $path;
 
             $gallery->save();
 
@@ -228,7 +230,7 @@ class GalleryController extends Controller
     {
         //
         try {
-            $group = Gallery::where('id', $id)->first();
+            $group = Gallery::where('church_id', Auth::user()->church_id)->findOrFail($id);
 
             $group->delete();
 

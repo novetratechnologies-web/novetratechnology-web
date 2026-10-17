@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Gallery;
 use App\Models\Photos;
 use App\Traits\Common;
+use App\Support\BranchFeed;
 use App\Http\Resources\API\ShowPhotos as ShowPhotosResource;
 use OpenApi\Attributes as OA;   // ← add this line
 
@@ -26,14 +27,22 @@ class GalleryController extends Controller
 
     public function show()
     {
-        $slider = Gallery::with('photos')->get();
+        $user = Auth::user();
+        $query = Gallery::with('photos')->where('church_id', $user->church_id);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $user->church_id));
+        $slider = $query->get();
         $gallery = ShowGalleryResource::collection($slider);
         return response()->json($gallery);
     }
 
     public function view($gallery_id, $church_id)
     {
-        $photos = Photos::where([['gallery_id', $gallery_id], ['church_id', $church_id]])->get();
+        abort_unless((int) Auth::user()->church_id === (int) $church_id, 404);
+        $branchId = app(BranchFeed::class)->currentId((int) $church_id);
+        $galleryQuery = Gallery::where([['id', $gallery_id], ['church_id', $church_id]]);
+        app(BranchFeed::class)->apply($galleryQuery, $branchId);
+        $gallery = $galleryQuery->firstOrFail();
+        $photos = Photos::where([['gallery_id', $gallery->id], ['church_id', $church_id]])->get();
         $photos = ShowPhotosResource::collection($photos);
         return response()->json($photos);
     }
@@ -59,7 +68,10 @@ class GalleryController extends Controller
 
     public function showdetails($church_id)
     {
-        $gallery = Gallery::where('church_id', $church_id)->latest()->paginate(10);
+        abort_unless((int) Auth::user()->church_id === (int) $church_id, 404);
+        $query = Gallery::where('church_id', $church_id)->latest();
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $church_id));
+        $gallery = $query->paginate(10);
         $gallery = ShowGalleryResource::collection($gallery);
 
         return $gallery;

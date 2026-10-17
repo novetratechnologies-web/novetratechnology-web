@@ -15,7 +15,7 @@ class ActivityLog extends JsonResource
     */
    public function toArray($request)
    {
-      $ip = $this->properties['ip'];
+      $ip = data_get($this->properties, 'ip');
       return 
       [
         'log_name'    => $this->log_name,

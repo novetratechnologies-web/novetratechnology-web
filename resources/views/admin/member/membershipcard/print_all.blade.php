@@ -81,7 +81,7 @@ $to = [0, 0, 255];
                                     @endphp
 
 
-              {{--<img src="data:image/png;base64, {!! base64_encode(QrCode::eye('square')->format('png')
+              {{--<img src="data:image/svg+xml;base64, {!! base64_encode(QrCode::eye('square')->format('svg')
     ->eye('circle')
     ->color(0, 0, 0)  
     ->margin(1)
@@ -121,7 +121,7 @@ $to = [0, 0, 255];
                              $url=url('/admin/attandance/'.$user->name);
                                     @endphp
 
-            <img src="data:image/png;base64, {!! base64_encode(QrCode::eye('square')->format('png')
+            <img src="data:image/svg+xml;base64, {!! base64_encode(QrCode::eye('square')->format('svg')
     ->eye('circle')
     ->color(0, 0, 0)  
     ->margin(1)
@@ -190,7 +190,8 @@ $to = [0, 0, 255];
             <p
               style="margin-bottom: 0em !important; margin-top: 2px !important"
             >
-              <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;"> {{ strtoupper($user->userprofile->address) }},{{strtoupper($user->userprofile->city->name)}} {{strtoupper($user->userprofile->state->name)}} ,{{strtoupper($user->userprofile->country->name)}}</span>
+              @php $address = collect([$user->userprofile?->address, $user->userprofile?->city?->name, $user->userprofile?->state?->name, $user->userprofile?->country?->name])->filter(fn ($part) => filled($part))->map(fn ($part) => strtoupper($part))->implode(', '); @endphp
+              <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;">{{ $address ?: 'Address not provided' }}</span>
             </p>
 
              <p

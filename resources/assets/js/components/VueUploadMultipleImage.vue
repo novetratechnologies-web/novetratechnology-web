@@ -140,7 +140,7 @@ export default {
     },
     accept: {
       type: String,
-      default: 'image/jpeg,image/png,image/bmp,image/jpg'
+      default: 'image/jpeg,image/png,image/webp,image/jpg'
     },
     dataImages: {
       type: Array,

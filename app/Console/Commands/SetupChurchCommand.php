@@ -56,7 +56,7 @@ class SetupChurchCommand extends Command
             $this->line('');
             $this->info('╔════════════════════════════════════════════════════════════╗');
             $this->info('║                                                            ║');
-            $this->info('║     Church CMS - Church & Administrator Setup              ║');
+            $this->info('║     IGM Church - Church & Administrator Setup              ║');
             $this->info('║                                                            ║');
             $this->info('╚════════════════════════════════════════════════════════════╝');
             $this->line('');
@@ -271,7 +271,7 @@ class SetupChurchCommand extends Command
             $this->line('');
             $this->line('╔════════════════════════════════════════════════════════════╗');
             $this->line('║                                                            ║');
-            $this->info('║      ✓ Church CMS Setup Complete!                        ║');
+            $this->info('║      ✓ IGM Church Setup Complete!                        ║');
             $this->line('║                                                            ║');
             $this->line('╚════════════════════════════════════════════════════════════╝');
             $this->line('');

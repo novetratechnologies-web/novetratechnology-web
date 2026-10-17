@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 use App\Models\Paymentgateway;
 use App\Models\User;
+use App\Models\Church;
 class DonationController extends Controller
 {
     private const ONLINE_GATEWAYS = ['paystack', 'flutterwave', 'mpesa', 'gcash', 'pix', 'telebirr', 'stripe'];
@@ -28,22 +29,22 @@ class DonationController extends Controller
     public function index()
     {
 
-        $donations  = Donation::where('user_id', request('user_id'))
-            ->where('church_id', request('church_id'))
-            ->latest()->get();
-
-        $payaccounts = $this->churchPayaccounts();
-
-          $user=User::where('id',request('user_id'))->first();
-        if(request('church_id')){
-              \Session::put('church_id',request('church_id'));
+        $user = Auth::check()
+            ? Auth::user()
+            : User::where('id', request('user_id'))
+                ->where('church_id', request('church_id'))
+                ->first();
+        $churchId = (int) ($user->church_id ?? request('church_id') ?? optional(Church::first())->id);
+        if ($churchId < 1) {
+            abort(404);
         }
-         
-          if(request('user_id')){
-           \Session::put('user_id',request('user_id'));
-          }
+        $donations = $user
+            ? Donation::where('user_id', $user->id)->where('church_id', $churchId)->latest()->get()
+            : collect();
+        $payaccounts = $this->churchPayaccounts($churchId);
+        session(['church_id' => $churchId, 'user_id' => $user->id ?? null]);
 
-        return view('donation', compact('donations', 'payaccounts','user'));
+        return view('donation', compact('donations', 'payaccounts', 'user'));
     }
 
     /** JSON: active payaccounts for this church (safe — no secret keys). */
@@ -56,7 +57,7 @@ class DonationController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'gateway'       => 'required|string',
+            'gateway'       => 'required|string|in:paystack,flutterwave,stripe',
             'reference'     => 'required|string',
             'payaccount_id' => 'required|integer',
             'amount'        => 'required|numeric|min:1',
@@ -64,40 +65,46 @@ class DonationController extends Controller
             'note'          => 'nullable|string|max:500',
         ]);
 
-      $church_id=\Session::get('church_id');
+        $church_id = \Session::get('church_id');
+        $user_id = \Session::get('user_id');
+        if (!$church_id || ($user_id && !User::whereKey($user_id)->where('church_id', $church_id)->exists())) {
+            return back()->with('error', 'Your donation session has expired. Please reopen the donation page.');
+        }
 
-        $payaccount = Payaccount::where('id', $request->payaccount_id)
-            ->where('church_id',  $request->church_id)
+        $payaccount = Payaccount::with('paymentgateway')->where('id', $request->payaccount_id)
+            ->where('church_id', $church_id)
             ->where('status', 1)
             ->first();
 
             //dd($payaccount);
 
-        if (!$payaccount) {
+        if (!$payaccount || ($payaccount->paymentgateway->gatewayname ?? null) !== $request->gateway) {
             return back()->with('error', 'Invalid payment account.');
         }
 
         $verified = false;
+        $defaultCurrencies = ['paystack' => 'NGN', 'flutterwave' => 'NGN', 'stripe' => 'USD'];
+        $currency = $payaccount->param5 ?: Paymentgateway::getCurrency($request->gateway, $defaultCurrencies[$request->gateway] ?? 'USD');
 
         try {
             switch ($request->gateway) {
                 case 'paystack':
                     $svc      = new PaystackService($payaccount->param2 ?? '', $payaccount->param1 ?? '');
                     $result   = $svc->verify($request->reference);
-                    $verified = $svc->isSuccessful($result);
+                    $verified = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 case 'flutterwave':
                     $svc      = new FlutterwaveService($payaccount->param2 ?? '');
                     $result   = $svc->verify($request->reference);
-                    $verified = $svc->isSuccessful($result);
+                    $verified = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 case 'stripe':
                     $secretKey = $payaccount->param2 ?: config('paymentgateway.stripe.secret_key', '');
                     $svc       = new StripeService($secretKey);
                     $result    = $svc->verify($request->reference);
-                    $verified  = $svc->isSuccessful($result);
+                    $verified  = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 default:
@@ -111,22 +118,23 @@ class DonationController extends Controller
             return back()->with('error', 'Payment verification failed. Please contact support.');
         }
 
-        $church_id=\Session::get('church_id');
-        $user_id=\Session::get('user_id');
-
-        Donation::create([
-            'church_id'   => $church_id,
-            'user_id'     => $user_id,
-            'amount'      => $request->amount,
-            'currency'    => 'USD',
-            'category'    => $request->category ?? 'offering',
-            'method'      => $request->gateway,
-            'gateway_ref' => $request->reference,
-            'status'      => 'completed',
-            'note'        => $request->note,
-            'uuid'        => uniqid(),
-            'donated_at'  => now(),
-        ]);
+        try {
+            app(\App\Services\Payment\VerifiedDonationRecorder::class)->record([
+                'church_id'   => $church_id,
+                'user_id'     => $user_id,
+                'amount'      => $request->amount,
+                'currency'    => strtoupper($currency),
+                'category'    => $request->category ?? 'offering',
+                'method'      => $request->gateway,
+                'gateway_ref' => $request->reference,
+                'status'      => 'completed',
+                'note'        => $request->note,
+                'uuid'        => uniqid(),
+                'donated_at'  => now(),
+            ]);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', 'This payment reference is already linked to a different amount or currency. Please contact support.');
+        }
 
         return redirect()->route('donate',['user_id'=>$user_id,'church_id'=>$church_id])
             ->with('success', 'Donation successful! Thank you for your generosity.');
@@ -160,7 +168,7 @@ class DonationController extends Controller
             $phone = $svc->formatPhone($request->phone);
             $ref   = 'DON-' . strtoupper(uniqid());
 
-            $result = $svc->stkPush($phone, $request->amount, $ref, route('member.donate.mpesa-callback'));
+            $result = $svc->stkPush($phone, $request->amount, $ref, route('donate.mpesa-callback'));
 
             if (!empty($result['CheckoutRequestID'])) {
                 $donation = Donation::create([
@@ -226,8 +234,9 @@ class DonationController extends Controller
             'note'          => 'nullable|string|max:500',
         ]);
 
+        $churchId = (int) session('church_id');
         $payaccount = Payaccount::where('id', $request->payaccount_id)
-            ->where('church_id',  request('church_id'))
+            ->where('church_id', $churchId)
             ->where('status', 1)
             ->first();
 
@@ -243,8 +252,8 @@ class DonationController extends Controller
             $desc      = 'Church Donation — ' . ($request->category ?? 'offering');
 
             // PayMongo appends ?source_id=src_xxx to the success URL automatically
-            $successUrl = route('member.donate.gcash-return') . '?status=success';
-            $failedUrl  = route('member.donate.gcash-return') . '?status=failed';
+            $successUrl = route('donate.gcash-return') . '?status=success';
+            $failedUrl  = route('donate.gcash-return') . '?status=failed';
 
             $result   = $svc->createSource((float) $request->amount, $successUrl, $failedUrl, $desc);
             $sourceId = $result['source_id'];
@@ -269,7 +278,7 @@ class DonationController extends Controller
     public function gcashReturn(Request $request)
     {
         if ($request->get('status') !== 'success') {
-            return redirect()->route('member.donate')->with('error', 'GCash payment was cancelled or failed.');
+            return redirect()->route('donate')->with('error', 'GCash payment was cancelled or failed.');
         }
 
         $sourceId = $request->get('source_id');
@@ -375,11 +384,21 @@ class DonationController extends Controller
         ]);
 
         try {
-             $church_id=\Session::get('church_id');
-        $user_id=\Session::get('user_id');
+            $church_id = (int) session('church_id');
+            $user_id = session('user_id');
+            if (!$church_id || ($user_id && !User::whereKey($user_id)->where('church_id', $church_id)->exists())) {
+                return back()->with('error', 'Your giving session has expired. Please reopen the giving page.');
+            }
             $method = 'cash';
             if ($request->payaccount_id) {
-                $pa     = Payaccount::with('paymentgateway')->find($request->payaccount_id);
+                $pa = Payaccount::with('paymentgateway')
+                    ->where('id', $request->payaccount_id)
+                    ->where('church_id', $church_id)
+                    ->where('status', 1)
+                    ->first();
+                if (!$pa) {
+                    return back()->with('error', 'The selected payment method is no longer available.');
+                }
                 $method = optional(optional($pa)->paymentgateway)->gatewayname ?? 'cash';
             }
 
@@ -417,10 +436,10 @@ class DonationController extends Controller
         'gcash'       => 'GCASH_CURRENCY',
     ];
 
-    private function churchPayaccounts(): array
+    private function churchPayaccounts(?int $churchId = null): array
     {
         return Payaccount::with('paymentgateway')
-            ->where('church_id', request('church_id'))
+            ->where('church_id', $churchId ?? request('church_id'))
             ->where('status', 1)
             ->get()
             ->map(function ($pa) {

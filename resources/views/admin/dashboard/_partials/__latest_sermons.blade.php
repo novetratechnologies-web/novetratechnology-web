@@ -1,9 +1,4 @@
-<div class="w-full">
-    <div class="flex justify-between">
-        <h1 class="text-sm uppercase text-gray-800 font-semibold mb-2">Latest Sermons</h1>
-        <a href="{{ url('/admin/sermons') }}" class="text-xs underline">See All</a>
-    </div>
-    <div class="w-full bg-white shadow rounded dashboard-content">
-        <dashboard-sermon url="{{ url('/') }}"></dashboard-sermon>
-    </div>
-</div>
+<section class="cd-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-violet"><i class="fas fa-book-open"></i></span><div><h3>Latest sermons</h3><p>Recent teaching and messages</p></div></div><a href="{{ url('/admin/sermons') }}" class="cd-heading-link">All sermons <i class="fas fa-arrow-right"></i></a></header>
+    <dashboard-sermon url="{{ url('/') }}"></dashboard-sermon>
+</section>

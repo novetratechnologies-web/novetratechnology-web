@@ -7,6 +7,7 @@ use App\Http\Resources\API\Events as EventsResource;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Events;
+use App\Support\BranchFeed;
 use Carbon\Carbon;
 use OpenApi\Attributes as OA;   // ← add this line
 
@@ -35,7 +36,9 @@ class EventsController extends Controller
     public function upcoming()
     {
         $end_date = Carbon::now();
-        $event = Events::where([['church_id', Auth::user()->church_id], ['end_date', '>=', $end_date]])->get();
+        $query = Events::where([['church_id', Auth::user()->church_id], ['end_date', '>=', $end_date]]);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) Auth::user()->church_id));
+        $event = $query->get();
         $upcomingevent = ShowEventResource::collection($event);
 
         return $upcomingevent;
@@ -84,6 +87,7 @@ class EventsController extends Controller
         $year  = request('year');
 
         $query = Events::where('church_id', Auth::user()->church_id);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) Auth::user()->church_id));
 
         if (!empty($month)) {
             $query->whereMonth('end_date', $month);
@@ -129,7 +133,9 @@ class EventsController extends Controller
 
     public function show($id)
     {
-        $event = Events::where([['church_id', Auth::user()->church_id], ['id', $id]])->get();
+        $query = Events::where([['church_id', Auth::user()->church_id], ['id', $id]]);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) Auth::user()->church_id));
+        $event = $query->get();
         $event = ShowEventResource::collection($event);
 
         return $event;

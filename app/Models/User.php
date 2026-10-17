@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laracasts\Presenter\PresentableTrait;
-use Laratrust\Traits\LaratrustUserTrait;
+use Laratrust\Traits\HasRolesAndPermissions;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Nckg\Impersonate\Traits\CanImpersonate;
@@ -58,7 +58,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property-read \Illuminate\Database\Eloquent\Collection $fund Financial contributions/funds by this user
  *
  * Traits:
- * - LaratrustUserTrait: Role-based access control permissions and roles
+ * - HasRolesAndPermissions: Role-based access control permissions and roles
  * - PresentableTrait: Presenter pattern for view representation
  * - HasApiTokens: Sanctum API token management
  * - SoftDeletes: Soft delete capability with deleted_at tracking
@@ -66,7 +66,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  */
 class User extends Authenticatable
 {
-    use LaratrustUserTrait;
+    use HasRolesAndPermissions;
     use PresentableTrait;
     use HasApiTokens;
     use SoftDeletes;
@@ -90,6 +90,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'church_id',
+        'branch_id',
         'usergroup_id',
         'ref_id',
         'name',
@@ -132,6 +133,11 @@ class User extends Authenticatable
         'email_verified_at'  => 'datetime',
     ];
 
+    public function branch()
+    {
+        return $this->belongsTo(ChurchBranch::class, 'branch_id');
+    }
+
     public function church()
     {
         return $this->belongsTo('App\Models\Church', 'church_id');
@@ -146,6 +152,17 @@ class User extends Authenticatable
     {
         return $this->hasOne('App\Models\Userprofile', 'user_id', 'id');
     }
+
+    public function communicationPreference()
+    {
+        return $this->hasOne(CommunicationPreference::class, 'user_id', 'id');
+    }
+
+    public function communicationDeliveries()
+    {
+        return $this->hasMany(CommunicationDelivery::class, 'user_id', 'id');
+    }
+
     public function members()
     {
         //return $this->hasMany('App\Models\User','ref_id','id');
@@ -420,7 +437,10 @@ class User extends Authenticatable
 
     public function getFullNameAttribute()
     {
-        return $this->userprofile->firstname . ' ' . $this->userprofile->lastname;
+        $profile = $this->userprofile;
+        $profileName = trim(($profile?->firstname ?? '') . ' ' . ($profile?->lastname ?? ''));
+
+        return $profileName !== '' ? $profileName : (string) ($this->name ?: $this->email ?: '');
     }
 
     public function getChurchLogoAttribute()

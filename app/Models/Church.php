@@ -69,6 +69,21 @@ class Church extends Model
         return $this->hasOne('App\Models\State','id','state_id');
     }
 
+    public function serviceSchedules()
+    {
+        return $this->hasMany(ChurchServiceSchedule::class, 'church_id', 'id');
+    }
+
+    public function branches()
+    {
+        return $this->hasMany(ChurchBranch::class, 'church_id', 'id');
+    }
+
+    public function headquartersBranch()
+    {
+        return $this->hasOne(ChurchBranch::class, 'church_id', 'id')->where('is_headquarters', true);
+    }
+
     public function city()
     {
         return $this->hasOne('App\Models\City','id','city_id');
@@ -101,13 +116,15 @@ class Church extends Model
 
     public function fulladdress()
     {
-        $fulladdress =  $this->address
-                        . "<br/>". $this->city->name
-                        . "<br />" .$this->pincode
-                        . "<br /> ". $this->state->name
-                        . "<br /> ". "India" ;
+        $parts = array_filter([
+            $this->address,
+            optional($this->city)->name,
+            $this->pincode,
+            optional($this->state)->name,
+            optional($this->country)->name,
+        ], static fn ($part) => is_string($part) && trim($part) !== '');
 
-        return $fulladdress;
+        return implode('<br />', array_map('e', $parts));
     }
 
     public function sermonlink()

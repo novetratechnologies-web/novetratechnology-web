@@ -281,6 +281,14 @@ Route::group(['middleware' => ['permission:manage-email-blaster']], function () 
 
 //church details
 Route::group(['middleware' => ['admingroup']], function () {
+    Route::get('/branches', 'ChurchBranchController@index');
+    Route::get('/branches/create', 'ChurchBranchController@create');
+    Route::post('/branches', 'ChurchBranchController@store');
+    Route::get('/branches/{id}/edit', 'ChurchBranchController@edit');
+    Route::put('/branches/{id}', 'ChurchBranchController@update');
+    Route::post('/branches/{id}', 'ChurchBranchController@update');
+    Route::post('/branches/{id}/toggle', 'ChurchBranchController@toggle');
+
     //add
     Route::get('/churchdetails/add', 'ChurchDetailsController@create');
     Route::post('/churchdetails/add', 'ChurchDetailsController@store');
@@ -324,6 +332,15 @@ Route::group(['middleware' => ['admingroup'], 'namespace' => 'MasterData'], func
 
 //widgets (cms)
 Route::group(['middleware' => ['permission:manage-cms']], function () {
+    Route::get('/hero-banners', 'HeroBannerController@index')->name('admin.hero-banners.index');
+    Route::get('/hero-banners/create', 'HeroBannerController@create')->name('admin.hero-banners.create');
+    Route::post('/hero-banners', 'HeroBannerController@store')->name('admin.hero-banners.store');
+    Route::get('/hero-banners/{id}/edit', 'HeroBannerController@edit')->name('admin.hero-banners.edit');
+    Route::put('/hero-banners/{id}', 'HeroBannerController@update')->name('admin.hero-banners.update');
+    Route::delete('/hero-banners/{id}', 'HeroBannerController@destroy')->name('admin.hero-banners.destroy');
+    Route::post('/hero-banners/live', 'HeroBannerController@updateLive')->name('admin.hero-banners.live.update');
+    Route::post('/hero-banners/live/stream-key', 'HeroBannerController@generateStreamKey')->name('admin.hero-banners.live.stream-key');
+
     Route::get('/widgets', 'WidgetController@index');
     Route::get('/widgets/{id}/edit', 'WidgetController@edit');
     Route::post('/widgets/{id}/update', 'WidgetController@update');
@@ -510,20 +527,20 @@ Route::get('/events/showdetails/{id}', 'EventsController@showdetails');
 //recurring events
 Route::group(['middleware' => ['permission:read-events']], function () {
     Route::get('/events', 'EventsController@index')->name('admin.events.index');
-    Route::get('/events/new', 'EventsController@newForm')->name('admin.events.new');
-    Route::post('/events/new', 'EventsController@storeNew')->name('admin.events.storeNew');
+    Route::get('/events/new', ['middleware' => ['permission:create-events'], 'uses' => 'EventsController@newForm'])->name('admin.events.new');
+    Route::post('/events/new', ['middleware' => ['permission:create-events'], 'uses' => 'EventsController@storeNew'])->name('admin.events.storeNew');
     Route::get('/events/show', 'EventsController@events');
     Route::post('/events/create', 'EventsController@store');
     Route::post('/events/update/{id}', 'EventsController@update');
     Route::post('/events/changeevent/{id}', 'EventsController@changeevent');
     Route::post('/events/validateedit/{id}', 'EventsController@validateedit');
     Route::get('/events/edit/{id}', 'EventsController@edit');
-    Route::get('/events/{id}/edit', 'EventsController@editForm')->name('admin.events.editForm');
-    Route::post('/events/{id}/edit', 'EventsController@storeEdit')->name('admin.events.storeEdit');
+    Route::get('/events/{id}/edit', ['middleware' => ['permission:update-events'], 'uses' => 'EventsController@editForm'])->name('admin.events.editForm');
+    Route::post('/events/{id}/edit', ['middleware' => ['permission:update-events'], 'uses' => 'EventsController@storeEdit'])->name('admin.events.storeEdit');
     Route::get('/events/show/details/{id}', 'EventsController@show')->name('admin.events.show');
     //Route::get('/events/showdetails/{id}', 'EventsController@showdetails');
     Route::get('/events/details/{id}', 'EventsController@details');
-    Route::delete('/events/delete/{id}', 'EventsController@destroy');
+    Route::delete('/events/delete/{id}', ['middleware' => ['permission:delete-events'], 'uses' => 'EventsController@destroy']);
     Route::get('/event/showAttendees/{id}/{status}', 'EventsController@showAttendees');
 
     //event_gallery
@@ -568,6 +585,8 @@ Route::get('/getavatar', 'UserProfileController@getavatar');
 Route::get('/editprofile', 'UserProfileController@edit');
 Route::get('/profile', 'UserProfileController@create');
 Route::post('/profile', 'UserProfileController@update');
+Route::get('/profile/states/{countryId}', 'UserProfileController@states');
+Route::get('/profile/cities/{stateId}', 'UserProfileController@cities');
 
 //Export/Import
 Route::group(['middleware' => ['permission:read-members']], function () {

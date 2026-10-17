@@ -4,6 +4,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/streaming/runtime/
 /vendor
 /.idea
 /.vscode
@@ -15,6 +16,7 @@ yarn-error.log
 .env
 .env.dusk.local
 .phpunit.result.cache
+/.phpunit.cache/
 
 public/uploads/photos/*
 !public/uploads/photos/index.html
@@ -75,3 +77,8 @@ _design_reference/
 _code_reference/
 _ai/
 .claude/
+
+# Local generated secrets and installation state
+/auto.key
+/auto.crt
+/storage/installed

@@ -1,53 +1,17 @@
-<div class="w-full">
-    <div class="flex justify-between items-center mb-2">
-        <div class="flex items-center gap-2">
-            <h1 class="text-sm uppercase text-gray-800 font-semibold">Help Requests</h1>
-            @if($dashboard['pendingHelpCount'] > 0)
-                <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {{ $dashboard['pendingHelpCount'] }} pending
-                </span>
-            @endif
-        </div>
-        <a href="{{ url('/admin/helps') }}" class="text-xs underline">See All</a>
+<section class="cd-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-rose"><i class="fas fa-hand-holding-heart"></i></span><div><h3>Care requests</h3><p>People who may need support</p></div></div><a href="{{ url('/admin/helps') }}" class="cd-heading-link">{{ $dashboard['pendingHelpCount'] }} open <i class="fas fa-arrow-right"></i></a></header>
+    <div class="cd-request-list">
+        @forelse($dashboard['pendingHelps'] as $help)
+            @php $helpName = $help->user?->FullName ?: ($help->user?->name ?: 'Guest'); @endphp
+            <article class="cd-request-row cd-request-help">
+                <span class="cd-request-avatar">{{ strtoupper(substr($helpName, 0, 1)) }}</span>
+                <div class="cd-request-body"><div class="cd-request-meta"><strong>{{ $helpName }}</strong><time>{{ $help->created_at?->diffForHumans() }}</time></div>
+                    <h4>{{ $help->title ?: 'Support request' }}</h4><p>{{ \Str::limit($help->description, 92) }}</p><a href="{{ url('/admin/help/edit/' . $help->id) }}">Review request <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </article>
+        @empty
+            <div class="cd-component-empty"><span><i class="fas fa-check"></i></span><strong>All caught up</strong><small>There are no pending care requests.</small></div>
+        @endforelse
     </div>
-
-    <div class="w-full shadow bg-white rounded dashboard-content">
-        <div class="w-full p-2">
-            @forelse($dashboard['pendingHelps'] as $help)
-                <div class="mt-2 border-l-4 border-red-400 rounded bg-red-50">
-                    <div class="flex items-start p-2 gap-2">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {{ strtoupper(substr($help->user->name ?? 'A', 0, 1)) }}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="font-semibold text-sm text-gray-800 truncate">
-                                    {{ $help->user->FullName ?? $help->user->name ?? 'Anonymous' }}
-                                </span>
-                                <span class="text-xs text-gray-400 flex-shrink-0">{{ $help->created_at->diffForHumans() }}</span>
-                            </div>
-                            <p class="text-xs font-medium text-gray-700 mt-0.5 truncate">{{ $help->title }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ \Str::limit($help->description, 80) }}</p>
-                            <a href="{{ url('/admin/help/edit/' . $help->id) }}"
-                                class="text-xs text-indigo-600 hover:underline mt-1 inline-block">
-                                Review &rarr;
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="py-4 text-center">
-                    <p class="text-sm text-gray-500 font-semibold">No pending requests</p>
-                </div>
-            @endforelse
-
-            @if($dashboard['pendingHelpCount'] > 5)
-                <div class="mt-2 text-center">
-                    <a href="{{ url('/admin/helps') }}" class="text-xs text-indigo-600 hover:underline">
-                        +{{ $dashboard['pendingHelpCount'] - 5 }} more pending &rarr;
-                    </a>
-                </div>
-            @endif
-        </div>
-    </div>
-</div>
+    @if($dashboard['pendingHelpCount'] > 5)<a class="cd-more-link" href="{{ url('/admin/helps') }}">View {{ $dashboard['pendingHelpCount'] - 5 }} more requests</a>@endif
+</section>

@@ -1,106 +1,49 @@
-<nav class="navbar bg-white w-full flex  lg:flex-row px-4 lg:px-8 pt-2 justify-between items-center">
-    <div class="nav-brand flex items-baseline">
-        <a href="{{ url('/admin/dashboard') }}">
-            <img src="{{ asset('uploads/Images/church_cms_logo.jpg') }}" alt="ChurchCMS Admin Logo" class="w-auto h-7 mr-2">
-        </a>
+@php
+    $navigationUser = Auth::user();
+    $navigationProfile = $navigationUser?->userprofile;
+    $navigationName = $navigationUser?->FullName ?: $navigationUser?->name ?: 'Administrator';
+    $navigationPage = ucwords(str_replace(['-', '_'], ' ', Request::segment(2) ?? 'dashboard'));
+@endphp
 
-
-
+<nav class="admin-topbar" aria-label="Admin header">
+    <div class="admin-topbar-branding">
+        <button type="button" class="admin-mobile-nav-toggle" onclick="toggleAdminMobileNav()" aria-label="Open navigation" aria-controls="res_sidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+        <a class="admin-topbar-logo" href="{{ url('/admin/dashboard') }}" aria-label="IGM Church admin dashboard"><img src="{{ asset('uploads/brand/igm-church-logo.png') }}" alt="IGM Church"></a>
+        <span class="admin-topbar-divider"></span>
+        <div class="admin-topbar-context"><span>CHURCH ADMINISTRATION</span><strong>{{ $navigationPage }}</strong></div>
     </div>
-    <div class="flex flex-col">
-        <a class="navbar-nav ml-auto flex items-center text-gray-700">
-            <strong>{{ ucwords(\Auth::user()->churchdetails->quotes) }} </strong>
-        </a>
-    </div>
-    <div class="navbar-menu collapse navbar-collapse" id="navbarSupportedContent">
-        <!-- Left Side Of Navbar -->
-        <ul class="navbar-nav mr-auto flex">
-        </ul>
-    </div>
-    <div class="flex items-center">
-        <notification url="{{ url('/') }}" mode="admin"></notification>
-        <div class="navbar-menu">
-            <!-- Right Side Of Navbar -->
-            <ul class="navbar-nav ml-auto flex items-center font-headings">
 
-                @guest
-                <li class="nav-item px-2">
-                    <a class="nav-link" href="{{ route('login') }}" id="login">{{ __('Login') }}</a>
-                </li>
-
-                @else
-                <!-- start -->
-                <li>
-                    <div class="profile-click" dusk="profile-menu">
-                        @if (Auth::user()->userprofile->avatar != null)
-                        <img src="{{ Auth::user()->userprofile->AvatarPath }}"
-                            class="w-8 h-8 rounded-full cursor-pointer">
-                        @else
-                        <img src="{{ url('uploads/user/avatar/default-user.jpg') }}"
-                            class="w-8 h-8 rounded-full cursor-pointer">
-                        @endif
-                        <div class="user-dtl rounded">
-                            <ul class="list-reset">
-                                <div class="flex border-b p-2 items-center">
-                                    @if (Auth::user()->userprofile->avatar != null)
-                                    <img src="{{ Auth::user()->userprofile->AvatarPath }}"
-                                        class="w-10 h-10 rounded-full cursor-pointer">
-                                    @else
-                                    <img src="{{ url('uploads/user/avatar/default-user.jpg') }}"
-                                        class="w-10 h-10 rounded-full cursor-pointer">
-                                    @endif
-                                    <div>
-                                        <div>
-                                            <a id="navbarDropdown"
-                                                class="nav-link dropdown-toggle text-sm  no-underline text-black px-2"
-                                                href="{{ url('/admin/dashboard') }}">
-                                                {{ Auth::user()->FullName }} <span class="caret"></span>
-                                            </a>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm no-underline text-black px-2">{{ Auth::user()->email }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="py-2 leading-loose">
-                                    <li class="hover:bg-gray-200">
-                                        <a href="{{ url('/admin/changepassword/') }}" dusk="password-link"
-                                            class="text-sm  no-underline text-black px-3">
-                                            <span>Change Password</span>
-                                        </a>
-                                    </li>
-                                    <li class="hover:bg-gray-200">
-                                        <a href="{{ url('/admin/editprofile') }}"
-                                            class="text-sm  no-underline text-black px-3">
-                                            <span>Edit Profile</span>
-                                        </a>
-                                    </li>
-                                    <li class="hover:bg-gray-200">
-                                        <a href="{{ url('/admin/changeavatar') }}"
-                                            class="text-sm  no-underline text-black px-3">
-                                            <span>Change Avatar</span>
-                                        </a>
-                                    </li>
-                                    <li class="hover:bg-gray-200">
-                                        <a class="dropdown-item text-sm  no-underline text-black px-3"
-                                            dusk="logout-link" href="{{ route('logout') }}" onclick="event.preventDefault();
-                                                         document.getElementById('logout-form').submit();">
-                                            {{ __('Logout') }}
-                                        </a>
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST"
-                                            style="display: none;">
-                                            @csrf
-                                        </form>
-                                    </li>
-                                </div>
-                            </ul>
-                        </div>
-                    </div>
-                </li>
-                <!-- end -->
-                @endguest
-            </ul>
-        </div>
+    <div class="admin-topbar-actions">
+        <a class="admin-site-link" href="{{ route('web.home') }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square"></i><span>View website</span></a>
+        <div class="admin-notification-control"><notification url="{{ url('/') }}" mode="admin"></notification></div>
+        @if($navigationUser)
+            <div class="admin-account-menu" data-account-menu>
+                <button type="button" class="admin-account-trigger" data-account-trigger aria-expanded="false" aria-haspopup="true">
+                    @if($navigationProfile?->avatar)
+                        <img src="{{ $navigationProfile->AvatarPath }}" alt="" class="admin-account-avatar">
+                    @else
+                        <span class="admin-account-avatar admin-account-initial">{{ strtoupper(substr($navigationName, 0, 1)) }}</span>
+                    @endif
+                    <span class="admin-account-identity"><strong>{{ $navigationName }}</strong><small>Administrator</small></span><i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="admin-account-dropdown" data-account-dropdown hidden>
+                    <div class="admin-account-dropdown-heading"><strong>{{ $navigationName }}</strong><span>{{ $navigationUser->email }}</span></div>
+                    <a href="{{ url('/admin/editprofile') }}"><i class="fas fa-user-pen"></i> Edit profile</a>
+                    <a href="{{ url('/admin/changepassword') }}"><i class="fas fa-lock"></i> Change password</a>
+                    <a href="{{ url('/admin/changeavatar') }}"><i class="fas fa-image"></i> Change photo</a>
+                    <form action="{{ route('admin.logout') }}" method="POST">@csrf<button type="submit"><i class="fas fa-arrow-right-from-bracket"></i> Sign out</button></form>
+                </div>
+            </div>
+        @endif
     </div>
 </nav>
+
+
+
+@push('scripts')
+<script>
+function toggleAdminMobileNav(forceClose){const drawer=document.getElementById('res_sidebar');const trigger=document.querySelector('.admin-mobile-nav-toggle');if(!drawer)return;const open=drawer.classList.contains('hidden');if(forceClose===true||!open){drawer.classList.add('hidden');drawer.classList.remove('block');document.body.classList.remove('admin-nav-open');trigger?.setAttribute('aria-expanded','false');trigger?.setAttribute('aria-label','Open navigation');}else{drawer.classList.remove('hidden');drawer.classList.add('block');document.body.classList.add('admin-nav-open');trigger?.setAttribute('aria-expanded','true');trigger?.setAttribute('aria-label','Close navigation');}}
+document.addEventListener('click',function(event){const account=event.target.closest('[data-account-menu]');document.querySelectorAll('[data-account-menu]').forEach(function(menu){const dropdown=menu.querySelector('[data-account-dropdown]');const trigger=menu.querySelector('[data-account-trigger]');if(!dropdown||!trigger)return;if(account===menu&&event.target.closest('[data-account-trigger]')){const shouldOpen=dropdown.hidden;dropdown.hidden=!shouldOpen;trigger.setAttribute('aria-expanded',String(shouldOpen));}else if(account!==menu){dropdown.hidden=true;trigger.setAttribute('aria-expanded','false');}});if(event.target.closest('[data-mobile-sidebar-close]'))toggleAdminMobileNav(true);if(event.target.id==='res_sidebar')toggleAdminMobileNav(true);});
+document.addEventListener('keydown',function(event){if(event.key==='Escape'){toggleAdminMobileNav(true);document.querySelectorAll('[data-account-dropdown]').forEach(function(dropdown){dropdown.hidden=true;dropdown.parentElement.querySelector('[data-account-trigger]')?.setAttribute('aria-expanded','false');});}});
+</script>
+@endpush

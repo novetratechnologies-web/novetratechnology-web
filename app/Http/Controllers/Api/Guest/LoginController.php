@@ -57,6 +57,8 @@ class LoginController extends Controller
                         'user_name'         =>  $user->name,
                         'user_fullname'     =>  $user->FullName,
                         'membership_type'   =>  $user->userprofile->membership_type,
+                        'branch_id'         =>  $user->branch_id,
+                        'branch_name'       =>  $user->branch?->name,
                     ], $this->successStatus);
                 }
             }
@@ -116,6 +118,11 @@ class LoginController extends Controller
             $church = Church::where('id', $request->church_id)->first();
             $path = '';
             $user = $this->createGuest($request, $church->id, $path, 5);
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Registration could not be completed. Please try again.'], 422);
+            }
+            $user->branch_id = (int) $request->branch_id;
+            $user->save();
 
             $message = 'Guest Added Successfully';
 
@@ -132,6 +139,8 @@ class LoginController extends Controller
                 'success'   =>  true,
                 'message'   =>  'You Are Added To This Church Successfully',
                 'user_id'   =>  $user->id,
+                'branch_id' =>  $user->branch_id,
+                'branch_name' => $user->branch?->name,
             ], 200);
         } catch (Exception $e) {
             Log::info($e->getMessage());

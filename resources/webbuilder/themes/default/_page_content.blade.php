@@ -1,7 +1,7 @@
 @if(!empty($page))
 
     @if($page->cover_image)
-    <img src="{{ \Storage::url($page->cover_image) }}"
+    <img src="{{ $page->CoverImagePath }}"
          alt="{{ $page->page_name }}"
          class="w-full h-56 object-cover rounded-lg mb-6">
     @endif

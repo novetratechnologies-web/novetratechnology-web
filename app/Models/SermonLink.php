@@ -85,6 +85,52 @@ class SermonLink extends Model
     {
         return $this->getFilePath($this->url);
     }
+
+    public function getVideoEmbedUrlAttribute(): ?string
+    {
+        $url = trim((string) $this->video_link);
+        if (preg_match('~(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?v=|embed/|live/|shorts/))([A-Za-z0-9_-]{11})~i', $url, $match)) {
+            return 'https://www.youtube-nocookie.com/embed/' . $match[1] . '?rel=0';
+        }
+
+        if (preg_match('~vimeo\.com/(?:video/)?([0-9]+)~i', $url, $match)) {
+            return 'https://player.vimeo.com/video/' . $match[1];
+        }
+
+        return null;
+    }
+
+    public function getYoutubeVideoIdAttribute(): ?string
+    {
+        $url = trim((string) $this->video_link);
+
+        foreach ([
+            '~youtu\.be/([A-Za-z0-9_-]{11})~i',
+            '~youtube(?:-nocookie)?\.com/(?:watch\?(?:[^#]*&)?v=|embed/|live/|shorts/)([A-Za-z0-9_-]{11})~i',
+        ] as $pattern) {
+            if (preg_match($pattern, $url, $match)) {
+                return $match[1];
+            }
+        }
+
+        return null;
+    }
+
+    public function getYoutubeThumbnailUrlAttribute(): ?string
+    {
+        return $this->youtube_video_id
+            ? 'https://img.youtube.com/vi/' . $this->youtube_video_id . '/hqdefault.jpg'
+            : null;
+    }
+
+    public function getDirectVideoUrlAttribute(): ?string
+    {
+        $url = trim((string) $this->video_link);
+        return preg_match('~^https?://~i', $url) && preg_match('~\.(?:mp4|webm|ogg)(?:\?.*)?$~i', $url)
+            ? $url
+            : null;
+    }
+
     public function getPdfUrlPathAttribute()
     {
 

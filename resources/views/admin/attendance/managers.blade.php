@@ -44,7 +44,7 @@
             <div class="flex items-center justify-between border-b py-2">
                 <div class="flex items-center gap-3">
                     @if(optional($manager->staff->userprofile)->avatar)
-                    <img src="{{ \Storage::disk('public')->url($manager->staff->userprofile->avatar) }}"
+                    <img src="{{ $manager->staff->userprofile->AvatarPath }}"
                         class="w-8 h-8 rounded-full object-cover">
                     @else
                     <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">

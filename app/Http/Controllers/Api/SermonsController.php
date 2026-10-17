@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Resources\API\ShowSermon as ShowSermonResource;
 use App\Http\Controllers\Controller;
 use App\Models\Sermon;
+use App\Support\BranchFeed;
+use Illuminate\Support\Facades\Auth;
 use OpenApi\Attributes as OA;   // ← add this line
 class SermonsController extends Controller
 {
@@ -30,7 +32,10 @@ class SermonsController extends Controller
     )]
     public function index($church_id)
     {
-        $sermon = Sermon::where('church_id', $church_id)->latest()->paginate(10);
+        abort_unless((int) Auth::user()->church_id === (int) $church_id, 404);
+        $query = Sermon::where('church_id', $church_id)->latest();
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $church_id));
+        $sermon = $query->paginate(10);
 
         $sermon = ShowSermonResource::collection($sermon);
 

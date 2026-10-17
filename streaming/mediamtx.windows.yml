@@ -1,0 +1,30 @@
+logLevel: info
+
+rtmpAddress: :1935
+hlsAddress: :8888
+hlsAllowOrigins: ['*']
+hlsVariant: lowLatency
+rtsp: false
+webrtc: false
+srt: false
+moq: false
+playback: false
+api: false
+metrics: false
+pprof: false
+
+authMethod: http
+authHTTPAddress: http://127.0.0.1:8000/api/streaming/auth
+
+pathDefaults:
+  runOnOnline: >-
+    powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass
+    -File "__STREAMING_SCRIPT__/media-status.ps1"
+    -Path "$MTX_PATH" -Online
+  runOnOffline: >-
+    powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass
+    -File "__STREAMING_SCRIPT__/media-status.ps1"
+    -Path "$MTX_PATH"
+
+paths:
+  all_others:

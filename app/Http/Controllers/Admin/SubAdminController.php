@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use App\Helpers\SiteHelper;
 use App\Traits\LogActivity;
 use App\Models\Userprofile;
+use App\Models\ChurchBranch;
 use App\Traits\Common;
 use App\Models\Permission;
 use App\Models\User;
@@ -101,8 +102,9 @@ class SubAdminController extends Controller
     {
         $countries   = SiteHelper::getCountries();
         $occupations = SiteHelper::getOccupationList();
+        $branches = ChurchBranch::forChurch((int) Auth::user()->church_id)->active()->orderByDesc('is_headquarters')->orderBy('name')->get();
 
-        return view('/admin/subadmin/create', compact('countries', 'occupations'));
+        return view('/admin/subadmin/create', compact('countries', 'occupations', 'branches'));
     }
 
     /**
@@ -124,6 +126,9 @@ class SubAdminController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'branch_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('church_branches', 'id')->where(fn ($query) => $query->where('church_id', Auth::user()->church_id)->where('is_active', true))],
+        ]);
         //
       	try
       	{
@@ -140,6 +145,8 @@ class SubAdminController extends Controller
           		$path = '';
         	}
         	$user = $this->CreateUser($request , $church_id , $path , 4);
+         $user->branch_id = (int) $request->branch_id;
+         $user->save();
 
         	if( (env('MAIL_STATUS') === "on") && ($user->email != '') )
         	{
@@ -240,7 +247,8 @@ class SubAdminController extends Controller
         $user = User::where('name',$name)->first();
         if(Gate::allows('member',$user))
         {
-          	return view('/admin/subadmin/edit',['user' => $user]);
+            $branches = ChurchBranch::forChurch((int) Auth::user()->church_id)->active()->orderByDesc('is_headquarters')->orderBy('name')->get();
+          return view('/admin/subadmin/edit',['user' => $user, 'branches' => $branches]);
         }
         else
         {
@@ -268,6 +276,9 @@ class SubAdminController extends Controller
      */
     public function update(Request $request,$name)
     {
+        $request->validate([
+            'branch_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('church_branches', 'id')->where(fn ($query) => $query->where('church_id', Auth::user()->church_id)->where('is_active', true))],
+        ]);
         //
         try
         {
@@ -301,6 +312,9 @@ class SubAdminController extends Controller
             $userprofile->city_id               = $request->city_id;
             $userprofile->pincode               = $request->pincode;
             $userprofile->notes                 = $request->notes;
+
+            $user->branch_id = (int) $request->branch_id;
+            $user->save();
 
             $userprofile->save();
 

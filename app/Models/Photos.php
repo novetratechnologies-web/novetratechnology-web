@@ -61,6 +61,7 @@ class Photos extends Model
 
   public function getFullPathAttribute()
   {
+    if (!$this->path) return '';
     return $this->getFilePath($this->path);
   }
 }

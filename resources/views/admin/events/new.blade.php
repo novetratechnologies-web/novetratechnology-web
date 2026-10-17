@@ -1,14 +1,12 @@
 @extends('layouts.admin.layout')
 
-@section('content')
-<div class="w-full max-w-3xl">
+@push('styles')
+    @include('admin.events._admin_styles')
+@endpush
 
-    <h1 class="admin-h1 mb-6 flex items-center gap-3">
-        <a href="{{ url('/admin/events') }}" class="rounded-full bg-gray-100 hover:bg-gray-200 p-2 transition">
-            <img src="{{ url('uploads/icons/back.svg') }}" class="w-3 h-3">
-        </a>
-        Create Event
-    </h1>
+@section('content')
+<div class="event-admin event-editor">
+    <div class="event-heading"><div class="event-heading-copy"><p class="event-kicker">Events · Plan something meaningful</p><h1 class="admin-h1">Create an event</h1><p class="event-subtitle">Set the details once. We’ll use them for your website, event reminders, attendance, and photo gallery.</p></div><a href="{{ route('admin.events.index') }}" class="event-secondary"><i class="fas fa-arrow-left"></i> All events</a></div>
 
     @include('partials.message')
 
@@ -24,6 +22,7 @@
                 <div class="flex gap-3 flex-wrap" id="event-type-group">
                     @foreach(['private' => ['label' => 'Private', 'icon' => 'fa-lock', 'desc' => 'Members only'],
                     'public' => ['label' => 'Public', 'icon' => 'fa-globe', 'desc' => 'Open to all'],
+                    'online' => ['label' => 'Online', 'icon' => 'fa-video', 'desc' => 'Virtual gathering'],
                     ] as $val => $opt)
                     @php $selType = old('select_type', 'public') === $val; @endphp
                     <label class="ev-pill flex-1 min-w-[140px] cursor-pointer border-2 rounded-lg px-4 py-3 flex items-center gap-3 transition select-none
@@ -136,7 +135,6 @@
                     <label class="tw-form-label">Event Date <span class="text-red-500">*</span></label>
                     <input type="date" name="event_date" id="event_date"
                         value="{{ old('event_date', date('Y-m-d')) }}"
-                        min="{{ date('Y-m-d') }}"
                         class="tw-form-control w-full @error('event_date') border-red-400 @enderror">
                     @error('event_date')<p class="tw-form-error text-red-500">{{ $message }}</p>@enderror
                 </div>
@@ -258,10 +256,28 @@
 
         </div>
 
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-5">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-sm font-semibold text-gray-700">YouTube recording <span class="text-gray-400 font-normal text-xs ml-1">(optional)</span></h2>
+            </div>
+            <div class="px-6 py-5">
+                <label for="video_url" class="tw-form-label">Video or livestream URL</label>
+                <input type="url" name="video_url" id="video_url" value="{{ old('video_url') }}"
+                    placeholder="https://www.youtube.com/live/... or https://youtu.be/..."
+                    class="tw-form-control w-full @error('video_url') border-red-400 @enderror">
+                @error('video_url')<p class="tw-form-error text-red-500">{{ $message }}</p>@enderror
+                <p class="text-xs text-gray-500 mt-2">Paste a YouTube watch, live, or short link. It will be playable on the event page. The preview below uses its thumbnail unless you choose a custom cover.</p>
+                <div id="video-preview" class="{{ old('video_url') ? '' : 'hidden' }} mt-4">
+                    <img id="video-preview-image" src="" alt="YouTube video thumbnail preview" class="w-full max-w-md aspect-video object-cover rounded-lg border border-gray-200">
+                    <p id="video-preview-error" class="hidden text-xs text-amber-700 mt-2">Enter a valid YouTube video URL to preview its thumbnail.</p>
+                </div>
+            </div>
+        </div>
+
         {{-- ── Cover Image ──────────────────────────────────────────────────── --}}
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-5">
             <div class="px-6 py-4 border-b border-gray-100">
-                <h2 class="text-sm font-semibold text-gray-700">Cover Image <span class="text-red-400 font-normal text-xs ml-1">*</span></h2>
+                <h2 class="text-sm font-semibold text-gray-700">Cover Image <span class="text-gray-400 font-normal text-xs ml-1">(optional when a recording is added)</span></h2>
             </div>
             <div class="px-6 py-5">
                 <input type="hidden" name="cover_image_id" id="cover_image_id" value="{{ old('cover_image_id') }}">
@@ -455,6 +471,25 @@
 @push('scripts')
 <script>
     (function() {
+        const videoInput = document.getElementById('video_url');
+        const videoPreview = document.getElementById('video-preview');
+        const videoPreviewImage = document.getElementById('video-preview-image');
+        const videoPreviewError = document.getElementById('video-preview-error');
+        function updateVideoPreview() {
+            if (!videoInput || !videoPreview) return;
+            const match = videoInput.value.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|live\/|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
+            videoPreview.classList.toggle('hidden', !videoInput.value.trim());
+            if (match) {
+                videoPreviewImage.src = 'https://img.youtube.com/vi/' + match[1] + '/hqdefault.jpg';
+                videoPreviewError.classList.add('hidden');
+            } else if (videoInput.value.trim()) {
+                videoPreviewImage.removeAttribute('src');
+                videoPreviewError.classList.remove('hidden');
+            }
+        }
+        videoInput?.addEventListener('input', updateVideoPreview);
+        updateVideoPreview();
+
         // ── Pill selection highlight ─────────────────────────────────────────
         function setupPillGroup(groupId) {
             var group = document.getElementById(groupId);
@@ -968,7 +1003,7 @@
             var form = document.getElementById('event-create-form');
             if (form) {
                 form.addEventListener('submit', function(e) {
-                    if (!inputPath || !inputPath.value) {
+                    if ((!inputPath || !inputPath.value) && !(document.getElementById('video_url')?.value.trim())) {
                         e.preventDefault();
                         if (coverError) coverError.classList.remove('hidden');
                         openBtn.scrollIntoView({

@@ -1,109 +1,62 @@
 @extends('layouts.app')
 
-@section('title', 'Welcome')
+@section('title', 'My IGM Account')
+
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/member-account.css') }}?v=1">
+@endpush
 
 @section('content')
-
 @php
-    $profile = optional($user->userprofile);
-    $firstname = $profile->firstname ?? $user->name;
+    $profile = $user->userprofile;
+    $church = $user->church;
+    $branch = $user->branch;
+    $churchName = $church?->name ?: 'International Gospel Ministries';
+    $branchName = $branch?->name;
+    $churchAddress = trim(strip_tags((string) ($branch?->address ?: $church?->fulladdress() ?: '')));
+    $guestFields = [
+        ['Email', $user->email],
+        ['Mobile', $user->mobile_no],
+        ['Gender', $profile?->gender ? ucfirst($profile->gender) : null],
+        ['Date of birth', $profile?->date_of_birth ? date('d M Y', strtotime($profile->date_of_birth)) : null],
+        ['Address', $profile?->address],
+        ['City', $profile?->city?->name],
+        ['Region', $profile?->state?->name],
+        ['Country', $profile?->country?->name],
+    ];
 @endphp
 
-{{-- Welcome banner --}}
-<div class="bg-indigo-600 rounded-2xl px-8 py-10 text-white mb-6 relative overflow-hidden">
-    <div class="relative z-10">
-        <p class="text-sm font-medium opacity-75 uppercase tracking-widest mb-1">Welcome back</p>
-        <h1 class="text-3xl font-bold">{{ $firstname }}</h1>
-        <span class="inline-flex items-center mt-3 px-3 py-1 rounded-full text-xs font-semibold bg-white bg-opacity-20 text-white">
-            Guest Member
-        </span>
+<div class="member-account-page member-guest-page">
+    @include('member._account_hero', ['user' => $user])
+
+    <nav class="member-quick-actions" aria-label="Account tools">
+        <a href="{{ route('member.mygrouplist') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span><strong>My communities</strong><small>Find your place to connect</small></span><b>›</b></a>
+        <a href="{{ route('member.donate') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span><strong>Give</strong><small>Support the ministry</small></span><b>›</b></a>
+        <a href="{{ route('communication-preferences.edit') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="6" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/></svg></span><span><strong>Communication settings</strong><small>Choose how we contact you</small></span><b>›</b></a>
+        <a href="{{ route('member.change-password') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span><strong>Password &amp; security</strong><small>Protect your account</small></span><b>›</b></a>
+    </nav>
+
+    <div class="member-dashboard-grid member-guest-dashboard-grid">
+        <section class="member-panel" id="member-profile">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR ACCOUNT</span><h2>Personal details</h2><p>Information connected to your guest account.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div>
+            <dl class="member-detail-list">
+                @foreach($guestFields as [$label, $value])
+                    <div><dt>{{ $label }}</dt><dd>{{ $value ?: 'Not added' }}</dd></div>
+                @endforeach
+            </dl>
+        </section>
+
+        <section class="member-panel" id="my-church">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR IGM COMMUNITY</span><h2>My church</h2><p>Your church and branch connection.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11m-7-17V1m-3 4h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+            <div class="member-church-identity"><span class="member-church-emblem"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11m-7-17V1m-3 4h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>{{ $churchName }}</strong><span>{{ $branchName ?: 'Branch not assigned' }}</span></div></div>
+            <div class="member-church-facts"><div><span>Branch</span><strong>{{ $branchName ?: 'Not assigned' }}</strong></div><div><span>Address</span><strong>{{ $churchAddress ?: 'Contact your church office for location details.' }}</strong></div>@if($branch?->phone)<div><span>Branch phone</span><strong>{{ $branch->phone }}</strong></div>@endif</div>
+            <a class="member-panel-action" href="{{ route('web.contact') }}">Contact IGM <span>→</span></a>
+        </section>
+
+        <section class="member-panel member-card-panel" id="membership-card">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR CHURCH ID</span><h2>Account card</h2><p>Your IGM account identification.</p></div><a class="member-print-button" href="{{ url('/member/print/'.$user->name) }}" target="_blank" rel="noopener">Print card <span>↗</span></a></div>
+            <div class="member-id-card-preview">@include('member.idcard.idcard')</div>
+        </section>
     </div>
-    {{-- decorative circles --}}
-    <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white opacity-5"></div>
-    <div class="absolute -right-4 -bottom-10 w-56 h-56 rounded-full bg-white opacity-5"></div>
 </div>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-    {{-- Profile summary --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Your Profile</h3>
-
-        <div class="flex items-center space-x-4 mb-5">
-            @if($profile->avatar)
-                <img src="{{ $profile->AvatarPath }}"
-                    class="w-16 h-16 rounded-full object-cover ring-4 ring-indigo-100">
-            @else
-                <div class="w-16 h-16 rounded-full bg-indigo-100 ring-4 ring-indigo-200 flex items-center justify-center flex-shrink-0">
-                    <span class="text-2xl font-bold text-indigo-600">
-                        {{ strtoupper(substr($firstname, 0, 1)) }}
-                    </span>
-                </div>
-            @endif
-            <div>
-                <p class="font-semibold text-gray-800">{{ $profile->firstname }} {{ $profile->lastname }}</p>
-                <p class="text-sm text-gray-500">{{ $user->email }}</p>
-            </div>
-        </div>
-
-        <dl class="divide-y divide-gray-50">
-            @foreach([
-                ['Mobile',       $user->mobile_no],
-                ['Gender',       ucfirst($profile->gender ?? '')],
-                ['Date of Birth',$profile->date_of_birth ? date('d M Y', strtotime($profile->date_of_birth)) : null],
-            ] as [$label, $value])
-            <div class="flex justify-between py-2.5">
-                <dt class="text-xs text-gray-400 font-medium">{{ $label }}</dt>
-                <dd class="text-sm text-gray-800 font-semibold">{{ $value ?: '—' }}</dd>
-            </div>
-            @endforeach
-        </dl>
-    </div>
-
-    {{-- Church info --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Church</h3>
-
-        <div class="flex items-start space-x-3 mb-5">
-            <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-            </div>
-            <div>
-                <p class="font-semibold text-gray-800 capitalize">{{ optional($user->church)->name }}</p>
-                <p class="text-sm text-gray-500 mt-0.5 leading-snug">{!! optional($user->church)->fulladdress() !!}</p>
-            </div>
-        </div>
-
-        <dl class="divide-y divide-gray-50">
-            @foreach([
-                ['Membership Type', ucfirst($profile->membership_type ?? 'Guest')],
-                ['Status',          ucfirst($profile->status ?? 'Active')],
-            ] as [$label, $value])
-            <div class="flex justify-between py-2.5">
-                <dt class="text-xs text-gray-400 font-medium">{{ $label }}</dt>
-                <dd class="text-sm text-gray-800 font-semibold">{{ $value ?: '—' }}</dd>
-            </div>
-            @endforeach
-        </dl>
-    </div>
-
-    {{-- Church info --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-         <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide ">Id Card</h3>&nbsp; <a href="{{ url('/member/print/'.$user->name) }}"
-   class="text-xs font-semibold text-white bg-blue-500 px-3 py-1 rounded cursor-pointer">
-   Print
-</a>
-        </div>
-            <div class="flex items-start space-x-3">
-                <!-- Front Side -->
-     @include('member.idcard.idcard')
-
-    </div>
-
-</div>
-
 @endsection

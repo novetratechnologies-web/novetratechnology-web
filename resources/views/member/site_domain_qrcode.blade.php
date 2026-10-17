@@ -17,8 +17,8 @@ $to = [0, 0, 255];
          
        
 
-    <img src="data:image/png;base64,{!! base64_encode(
-    QrCode::format('png')
+<img src="data:image/svg+xml;base64,{!! base64_encode(
+    QrCode::format('svg')
         ->color(244, 197, 66)      // Gold
         ->backgroundColor(31, 36, 48) // Dark Navy
         ->margin(1)

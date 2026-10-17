@@ -126,16 +126,8 @@ trait Common {
      *
      * @return string The publicly accessible URL for the file
      */
-    public function getFilePath(string $file): string {
-        $path = '';
-
-        try {
-            $path = \Storage::disk('public')->url($file);
-        } catch (Exception $e) {
-            Log::info($e->getMessage());
-        }
-
-        return $path;
+    public function getFilePath(?string $file): string {
+        return app(\App\Support\PublicFileUrl::class)->resolve($file);
     }
 
     /**

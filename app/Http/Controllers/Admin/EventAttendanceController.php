@@ -99,7 +99,7 @@ class EventAttendanceController extends Controller
                     'member_id'   => $user->id,
                     'member_name' => $user->name,
                     'avatar_url'  => $user->userprofile?->avatar
-                        ? \Storage::disk('public')->url($user->userprofile->avatar)
+                        ? $user->userprofile->AvatarPath
                         : null,
                     'mobile_no'   => $user->mobile_no,
                 ];

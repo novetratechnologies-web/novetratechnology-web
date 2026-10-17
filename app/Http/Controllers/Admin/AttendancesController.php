@@ -44,7 +44,7 @@ class AttendancesController extends Controller
 
         $csv->insertOne(['(mobile_number)','(title)','(prayer,education,meeting,culturals,sermon)','(event_date)','Delete this entire row before importing']);
 
-        $csv->output('Church Social Event Summary Format'.date('_d-m-Y_H:i').'.csv');
+        $csv->output('IGM Church Event Summary Format'.date('_d-m-Y_H:i').'.csv');
 
         $message=('Downloaded Sample Format File Successfully');
 
@@ -120,7 +120,7 @@ class AttendancesController extends Controller
 
         $csv->insertOne(['(mobile_number)','Delete this entire row before importing']);
 
-        $csv->output('Church Social '.$event->title.' Summary Format'.date('_d-m-Y_H:i').'.csv');
+        $csv->output('IGM Church '.$event->title.' Summary Format'.date('_d-m-Y_H:i').'.csv');
 
         $message=('Downloaded Sample Format File Successfully');
 

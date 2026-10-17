@@ -16,18 +16,25 @@
         </thead>
         <tbody>
             @foreach ($activitylog as $activity)
+                @php
+                    $profile = $activity->user?->userprofile;
+                    $displayName = trim((string) $profile?->firstname.' '.(string) $profile?->lastname)
+                        ?: ($activity->user?->name ?: 'System');
+                    $ipAddress = data_get($activity->properties, 'ip');
+                @endphp
                 <tr>
-                    <td> <a href="{{ url('admin/activity_log/' . optional($activity->user)->name) }}">{{ optional($activity->user)->FullName }}
+                    <td>
+                        @if ($activity->user)
+                            <a href="{{ url('admin/activity_log/' . $activity->user->name) }}">{{ $displayName }}</a>
+                        @else
+                            {{ $displayName }}
+                        @endif
                     </td>
                     <td>{{ $activity->log_name }}</td>
                     <td>{{ $activity->description }}</td>
                     <td>{{ $activity->created_at->format(' d-m-Y  H:i:s') }}</td>
                     <td>
-                        @if (asset($activity->properity['ip']) != '')
-                            {{ $activity->properties['ip'] }}
-                        @else
-                            --
-                        @endif
+                        {{ $ipAddress ?: '--' }}
                     </td>
                 </tr>
             @endforeach

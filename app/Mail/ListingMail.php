@@ -37,8 +37,10 @@ class ListingMail extends Mailable implements ShouldQueue
     public function build()
     {
         $id = $this->id;
-        return $this->subject($this->subject)->from($this->from_email, $this->from_name)->replyTo($this->reply_to_email)->markdown('emails.maillist')->with(['content' => $this->content])->withSwiftMessage(function ($message) use ($id) {
-            $message->getHeaders()->addTextHeader('X-Model-ID', $id);
+        return $this->subject($this->subject)->from($this->from_email, $this->from_name)->replyTo($this->reply_to_email)->markdown('emails.maillist')->with(['content' => $this->content])->withSymfonyMessage(function ($message) use ($id) {
+            if ($id !== null) {
+                $message->getHeaders()->addTextHeader('X-Model-ID', (string) $id);
+            }
         });
     }
 }

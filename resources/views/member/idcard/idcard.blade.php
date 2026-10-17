@@ -1,14 +1,23 @@
 <!-- Front Side -->
+@php
+  $profile = $user->userprofile;
+  $addressParts = array_filter([
+      $profile?->address,
+      $profile?->city?->name,
+      $profile?->state?->name,
+      $profile?->country?->name,
+  ], fn ($part) => filled($part));
+@endphp
 <div class="card">
   <!-- Logo + QR Row -->
   <table style="width: 100%; padding-right: 0; padding-left: 0;">
     <tr style="padding-right:10px;">
       <td style="padding-right:10px;">
 
-        @if($user->userprofile->AvatarPath)
+        @if($profile?->AvatarPath)
         <img
           class="w-32 h-32 border-4 border-white"
-          src="{{ $user->userprofile->AvatarPath}}"
+          src="{{ $profile->AvatarPath }}"
           alt="Profile Picture" style="height: 120px; margin: 0" />
         @else
         <img
@@ -24,7 +33,7 @@
         <img src="{{ Auth::user()->ChurchLogoPath }}" style="height:55px;" class="w-32 h-32 border-4 border-white" alt="Logo" style="height: 120px; margin: 0">
 
         @else
-        <img src="{{ asset('images/church_cms_logo.jpg') }}" style="height:55px;" class="w-32 h-32 border-4 border-white" alt="Logo" style="height: 120px; margin: 0">
+        <img src="{{ app(\App\Support\PublicFileUrl::class)->resolve(config('settings.logo') ?: 'uploads/brand/igm-church-logo.png') }}" class="w-32 h-auto" alt="IGM Church" style="max-height: 120px; margin: 0">
         @endif
       </td>
 
@@ -74,7 +83,7 @@
       <td style=" text-align: left">
         <p
           style="margin-bottom: 0em !important; margin-top: 2px !important">
-          <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;"> {{ strtoupper($user->userprofile->address) }},{{strtoupper($user->userprofile->city->name)}} {{strtoupper($user->userprofile->state->name)}} ,{{strtoupper($user->userprofile->country->name)}}</span>
+          <span style="font-weight: 600">ADDRESS -</span> <span style="font-size:10px;">{{ $addressParts ? strtoupper(implode(', ', $addressParts)) : '--' }}</span>
         </p>
         <p
           style="margin-bottom: 0em !important; margin-top: 5px !important">

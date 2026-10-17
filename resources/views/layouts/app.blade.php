@@ -5,12 +5,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', config('app.name', 'Church CMS'))</title>
+    <title>@yield('title', config('app.name', 'IGM Church'))</title>
 
     {{-- Favicon --}}
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('favicon/apple-icon-180x180.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('uploads/brand/igm-church-favicon.png') }}?v=2">
+    <link rel="icon" type="image/png" href="{{ asset('uploads/brand/igm-church-favicon.png') }}?v=2">
     <link rel="manifest" href="{{ asset('favicon/manifest.json') }}">
 
     {{-- Fonts --}}
@@ -19,7 +18,7 @@
 
     {{-- Styles --}}
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
-
+    @include('theme::_header_styles')
     @stack('styles')
 </head>
 <body class="bg-gray-100">

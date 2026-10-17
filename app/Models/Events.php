@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Common;
+use App\Traits\AssignContentBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -46,6 +47,7 @@ class Events extends Model
     use SoftDeletes;
     use Common;
     use HasFactory;
+    use AssignContentBranch;
 
     /**
      * The table associated with the model.
@@ -73,6 +75,7 @@ class Events extends Model
         'category',
         'organised_by',
         'image',
+        'video_url',
         'start_date',
         'end_date',
         'allDay',
@@ -135,13 +138,57 @@ class Events extends Model
     public function getImagePathAttribute()
     {
         if ($this->image) {
-            if (str_starts_with($this->image, 'http')) {
-                return $this->image;
-            }
-            return \Storage::disk('public')->url($this->image);
+            return $this->getFilePath($this->image);
+        }
+
+        if ($this->youtube_thumbnail_url) {
+            return $this->youtube_thumbnail_url;
         }
 
         return $this->eventImagePath($this->category);
+    }
+
+    public function getYoutubeVideoIdAttribute(): ?string
+    {
+        $url = trim((string) $this->video_url);
+        if ($url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+        $host = strtolower($parts['host'] ?? '');
+        $path = trim($parts['path'] ?? '', '/');
+
+        if (!in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
+            return null;
+        }
+
+        if ($host === 'youtu.be') {
+            $videoId = explode('/', $path)[0] ?? '';
+        } elseif (($path === 'watch' || $path === '') && !empty($parts['query'])) {
+            parse_str($parts['query'], $query);
+            $videoId = $query['v'] ?? '';
+        } elseif (preg_match('#^(?:live|shorts|embed)/([^/]+)#', $path, $matches)) {
+            $videoId = $matches[1];
+        } else {
+            return null;
+        }
+
+        return preg_match('/^[A-Za-z0-9_-]{11}$/', $videoId) ? $videoId : null;
+    }
+
+    public function getYoutubeThumbnailUrlAttribute(): ?string
+    {
+        return $this->youtube_video_id
+            ? 'https://img.youtube.com/vi/' . $this->youtube_video_id . '/hqdefault.jpg'
+            : null;
+    }
+
+    public function getVideoEmbedUrlAttribute(): ?string
+    {
+        return $this->youtube_video_id
+            ? 'https://www.youtube-nocookie.com/embed/' . $this->youtube_video_id
+            : null;
     }
 
     /**

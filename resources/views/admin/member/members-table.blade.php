@@ -53,23 +53,23 @@
                 </thead>
                 <tbody id="members-table-body">
                     @foreach($members as $member)
-                    <tr class="member-row hover:bg-gray-50 border-b border-gray-300" data-member-id="{{ $member['id'] }}" data-search-text="{{ strtolower($member['fullname'] . ' ' . $member['email'] . ' ' . ($member['mobile_no'] ?? '')) }}">
+                    <tr class="member-row hover:bg-gray-50 border-b border-gray-300" data-member-id="{{ $member['id'] }}" data-search-text="{{ strtolower(($member['fullname'] ?? '') . ' ' . ($member['email'] ?? '') . ' ' . ($member['mobile_no'] ?? '')) }}">
                         <td class="border border-gray-300 px-3 py-2 text-center">
                             <input type="checkbox" class="member-checkbox" value="{{ $member['id'] }}">
                         </td>
                         <td class="border border-gray-300 px-3 py-2 text-sm">
                             <div class="flex items-center gap-2">
-                                <img src="{{ $member['avatar'] }}" alt="{{ $member['fullname'] }}" class="w-8 h-8 rounded-full flex-shrink-0">
-                                <a href="{{ url('/admin/member/show/' . $member['name']) }}" class="text-blue-600 hover:underline font-semibold truncate">
-                                    {{ $member['fullname'] }}
+                                <img src="{{ ($member['avatar'] ?? null) ?: url('uploads/user/avatar/default-user.jpg') }}" alt="{{ $member['fullname'] ?? 'Member' }}" class="w-8 h-8 rounded-full flex-shrink-0" onerror="this.onerror=null;this.src='{{ url('uploads/user/avatar/default-user.jpg') }}';">
+                                <a href="{{ url('/admin/member/show/' . ($member['name'] ?? '')) }}" class="text-blue-600 hover:underline font-semibold truncate">
+                                    {{ ($member['fullname'] ?? null) ?: ($member['email'] ?? 'Member') }}
                                 </a>
                             </div>
                         </td>
-                        <td class="border border-gray-300 px-3 py-2 text-sm">{{ $member['email'] }}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-sm">{{ $member['email'] ?? '—' }}</td>
                         <td class="border border-gray-300 px-3 py-2 text-sm">{{ $member['mobile_no'] ?? '-' }}</td>
                         <td class="border border-gray-300 px-3 py-2 text-sm">
-                            @if($member['sub_occupation'])
-                            {{ $member['profession'] }} ({{ $member['sub_occupation'] }})
+                            @if(!empty($member['sub_occupation']))
+                            {{ $member['profession'] ?? 'Profession' }} ({{ $member['sub_occupation'] }})
                             @else
                             {{ $member['profession'] ?? '-' }}
                             @endif
@@ -79,7 +79,7 @@
                             <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Active</span>
                         </td>
                         <td class="border border-gray-300 px-3 py-2 text-center">
-                            <a href="{{ url('/admin/member/show/' . $member['name']) }}" class="text-blue-600 hover:underline text-xs font-semibold">View</a>
+                            <a href="{{ url('/admin/member/show/' . ($member['name'] ?? '')) }}" class="text-blue-600 hover:underline text-xs font-semibold">View</a>
                         </td>
                     </tr>
                     @endforeach

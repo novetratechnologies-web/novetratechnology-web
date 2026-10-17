@@ -1,0 +1,36 @@
+logLevel: info
+
+rtmpAddress: :1935
+hlsAddress: :8888
+hlsAllowOrigins: ['*']
+hlsVariant: lowLatency
+rtsp: false
+webrtc: false
+srt: false
+moq: false
+playback: false
+api: false
+metrics: false
+pprof: false
+
+authMethod: http
+authHTTPAddress: http://host.docker.internal:8000/api/streaming/auth
+
+pathDefaults:
+  runOnOnline: >-
+    curl -fsS -X POST
+    -H "Authorization: Bearer $STREAM_WEBHOOK_TOKEN"
+    -H "Content-Type: application/x-www-form-urlencoded"
+    --data-urlencode "path=$MTX_PATH"
+    --data "online=1"
+    $STREAM_WEBHOOK_URL
+  runOnOffline: >-
+    curl -fsS -X POST
+    -H "Authorization: Bearer $STREAM_WEBHOOK_TOKEN"
+    -H "Content-Type: application/x-www-form-urlencoded"
+    --data-urlencode "path=$MTX_PATH"
+    --data "online=0"
+    $STREAM_WEBHOOK_URL
+
+paths:
+  all_others:

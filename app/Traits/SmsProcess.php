@@ -5,9 +5,9 @@
 namespace App\Traits;
 
 use App\Models\Smstemplate;
-use App\Traits\MSG91;
-use Exception;
-use Log;
+use App\Services\Communication\HostPinnacleSmsService;
+use Throwable;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Trait for SMS notification and messaging operations
@@ -23,28 +23,36 @@ use Log;
  */
 trait SmsProcess
 {
-	use MSG91;
+	private function deliverConfiguredSms(string $message, string $to): bool
+	{
+		if (!config('services.hostpinnacle.enabled')) {
+			return false;
+		}
+
+		try {
+			app(HostPinnacleSmsService::class)->send($to, $message);
+			return true;
+		} catch (Throwable $e) {
+			Log::warning('Church SMS delivery failed.', ['error' => $e->getMessage()]);
+			return false;
+		}
+	}
 
     public function sendSmsNotification($to,$start_date,$location)
     {
-        try
-        {
-       	    $template = Smstemplate::where([['name','Event'],['status','1']])->first();
-       	    $content  = $template->content;
+        try {
+            $template = Smstemplate::where([['name', 'Event'], ['status', '1']])->firstOrFail();
+            $content = $template->content;
 
        	    $content = str_replace(":date",$start_date,$content);
             $content = str_replace(":location",$location,$content);
 
-       		$sms = env('SMS_GATEWAY');
-
-       		if($sms)
-    		{
-       			$this->sendSMS($content, $to);
-       		}
+			return $this->deliverConfiguredSms($content, $to);
         }
-        catch(Exception $e)
+        catch(Throwable $e)
         {
-            Log::info($e->getMessage());
+            Log::warning('Unable to prepare event SMS.', ['error' => $e->getMessage()]);
+            return false;
         }
     }
 
@@ -52,20 +60,16 @@ trait SmsProcess
     {
         try
         {
-            $template = Smstemplate::where([['name','permission_credentials'],['status','1']])->first();
+            $template = Smstemplate::where([['name','permission_credentials'],['status','1']])->firstOrFail();
             $content  = $template->content;
 
             $content = str_replace(":content",$message,$content);
-            $sms = env('SMS_GATEWAY');
-
-            if($sms)
-            {
-                $this->sendSMS($content, $to);
-            }
+            return $this->deliverConfiguredSms($content, $to);
         }
-        catch(Exception $e)
+        catch(Throwable $e)
         {
-            Log::info($e->getMessage());
+            Log::warning('Unable to prepare group notification SMS.', ['error' => $e->getMessage()]);
+            return false;
         }
     }
 
@@ -73,20 +77,16 @@ trait SmsProcess
     {
         try
         {
-            $template = Smstemplate::where([['name','reset_password'],['status','1']])->first();
+            $template = Smstemplate::where([['name','reset_password'],['status','1']])->firstOrFail();
             $content  = $template->content;
 
             $content = str_replace(":token",$message,$content);
-            $sms = env('SMS_GATEWAY');
-
-            if($sms)
-            {
-              $this->sendSMS($content, $to);
-            }
+            return $this->deliverConfiguredSms($content, $to);
         }
-        catch(Exception $e)
+        catch(Throwable $e)
         {
-            Log::info($e->getMessage());
+            Log::warning('Unable to prepare password reset SMS.', ['error' => $e->getMessage()]);
+            return false;
         }
     }
 
@@ -94,20 +94,16 @@ trait SmsProcess
     {
         try
         {
-            $template = Smstemplate::where([['name','send_sms'],['status',1]])->first();
+            $template = Smstemplate::where([['name','send_sms'],['status',1]])->firstOrFail();
             $content  = $template->content;
 
             $content = str_replace(":content",$message,$content);
-            $sms = env('SMS_GATEWAY');
-
-            if($sms)
-            {
-                $this->sendPrivateSMS($content, $to);
-            }
+            return $this->deliverConfiguredSms($content, $to);
         }
-        catch(Exception $e)
+        catch(Throwable $e)
         {
-            Log::info($e->getMessage());
+            Log::warning('Unable to prepare private SMS.', ['error' => $e->getMessage()]);
+            return false;
         }
     }
 }

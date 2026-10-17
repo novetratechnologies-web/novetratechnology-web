@@ -1,6 +1,4 @@
-<div>
-    <h1 class="text-sm uppercase text-gray-800 font-semibold mb-2">Anniversaries</h1>
-    <div class="w-full bg-white rounded shadow p-2 dashboard-content">
-        <view-anniversary url="{{ url('/') }}"></view-anniversary>
-    </div>
-</div>
+<section class="cd-component cd-special-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-rose"><i class="fas fa-heart"></i></span><div><h3>Anniversaries</h3><p>Celebrate lasting connections</p></div></div></header>
+    <view-anniversary url="{{ url('/') }}"></view-anniversary>
+</section>

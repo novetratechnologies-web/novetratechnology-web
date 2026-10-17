@@ -4,6 +4,8 @@ namespace App\Observers;
 
 use Illuminate\Support\Facades\Auth;
 use App\Models\Events;
+use App\Services\Communication\ChurchCommunicationDispatcher;
+use Carbon\Carbon;
 use Exception;
 use Log;
 
@@ -26,6 +28,29 @@ class EventObserver
             ];
 
             Events::where('id',$events->id)->update($update);
+
+            // Imports and seeders may create events, but should not notify real users.
+            if (!app()->runningInConsole() && $events->church_id) {
+                $start = $events->start_date
+                    ? Carbon::parse($events->start_date)
+                    : null;
+                $details = array_filter([
+                    $events->title,
+                    $start?->format('D, j M Y g:i A'),
+                    $events->location,
+                ]);
+
+                app(ChurchCommunicationDispatcher::class)->toChurch(
+                    (int) $events->church_id,
+                    'new_event',
+                    'New event at {church}: '.($events->title ?: 'Event'),
+                    'Hello {name}, {church} has a new event'.($details ? ': '.implode(' · ', $details) : '.'),
+                    'event:'.$events->id,
+                    (int) $events->id,
+                    $start,
+                    ['url' => url('/event/'.$events->id)]
+                );
+            }
         }
         catch(Exception $e)
         {

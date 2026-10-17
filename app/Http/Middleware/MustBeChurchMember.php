@@ -15,7 +15,7 @@ class MustBeChurchMember
      */
     public function handle($request, Closure $next)
     {
-        if (\Auth::user()->usergroup_id == 3 || \Auth::user()->usergroup_id == 4) {
+        if (in_array((int) \Auth::user()->usergroup_id, [1, 2, 3, 4], true)) {
 
             return redirect('/admin/dashboard');
         }
@@ -25,10 +25,6 @@ class MustBeChurchMember
         }
 
 
-
-        if (\Auth::user()->usergroup_id == 1 || \Auth::user()->usergroup_id == 2) {
-            return redirect('/portal');
-        }
 
         abort(403);
     }

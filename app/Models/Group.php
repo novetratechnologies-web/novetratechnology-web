@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\Common;
+use App\Traits\AssignContentBranch;
 
 /**
  * Group Model
@@ -34,6 +35,7 @@ class Group extends Model
     //
     use SoftDeletes;
     use Common;
+    use AssignContentBranch;
 
     /**
      * The table associated with the model.

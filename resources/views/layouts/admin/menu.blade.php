@@ -1,433 +1,122 @@
 @php
-$isAdmin = auth()->user()->usergroup_id == 3;
-$user = auth()->user();
+    $navUser = auth()->user();
+    $isChurchAdmin = (int) ($navUser?->usergroup_id ?? 0) === 3;
+    $navSegment = Request::segment(2) ?? 'dashboard';
+    $peopleSegments = ['members','member','guests','guest','subadmins','subadmin','groups','group','prayerboard','prayercategories','prayercategory','helps','messages','message'];
+    $contentSegments = ['events','event','sermons','sermon','bulletins','bulletin','gallery','mediafiles','mediafile','quotes','quote'];
+    $financeSegments = ['payaccounts','payaccount','funds','fund','donations','donation','paymentgateways','paymentgateway'];
+    $communicationSegments = ['communications','campaigns','emails','email','campaign','subscribers','subscriber','mailinglists','email-templates','mailinglist','mailqueues','mailqueue','smtps','smtp','newsletter','rules','rule','mails-delivered','mail-delivered','webhooks','webhook','contacts','contact','feedbacks','feedback'];
+    $websiteSegments = ['pages','page','page-categories','pageCategory','posts','post','post-categories','postCategory','faq','faq-categories','widgets','google-analytics','hero-banners'];
+    $settingsSegments = ['settings','countries','country','states','state','cities','city'];
+    $emailSegments = ['campaigns','emails','email','campaign','subscribers','subscriber','mailinglists','email-templates','mailinglist','mailqueues','mailqueue','smtps','smtp','newsletter','rules','rule','mails-delivered','mail-delivered','webhooks','webhook'];
 @endphp
-<ul class="list-reset tracking-wide font-navigation text-xs">
 
-    {{-- ── Dashboard ──────────────────────────────────────────────────── --}}
-    <li class="py-2 px-3 {{ Request::segment('2') == 'dashboard' ? 'active' : '' }}">
-        <a href="{{ url('admin/dashboard') }}" class="flex items-center">
-            <i class="fas fa-gauge-high w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Dashboard</span>
-        </a>
-    </li>
+<aside class="admin-side-nav" aria-label="Admin navigation">
+    <div class="admin-side-brand"><span class="admin-side-brand-icon"><i class="fas fa-cross"></i></span><div><strong>Church admin</strong><small>Workspace navigation</small></div></div>
+    <nav class="admin-side-scroll">
+        <a class="admin-side-link {{ $navSegment === 'dashboard' ? 'is-active' : '' }}" href="{{ url('/admin/dashboard') }}" data-mobile-sidebar-close><i class="fas fa-gauge-high"></i><span>Dashboard</span></a>
 
-    {{-- ── People ──────────────────────────────────────────────────────── --}}
-    @php
-    $showUsers = $isAdmin || $user->hasPermission('read-members');
-    $usersActive = in_array(Request::segment('2'), ['members','member','guests','guest','subadmins','subadmin']) ? 'active' : '';
-    @endphp
-    @if($showUsers)
-    <li class="relative py-2 px-3 hover:bg-red-900 {{ $usersActive }}">
-        <a href="#" class="flex items-center">
-            <i class="fas fa-users w-5 text-center text-sm opacity-75"></i>
-            <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">Users</span>
-            <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-        </a>
-        <ul class="list-reset sites-sidebar">
-            @if($isAdmin || $user->hasPermission('read-members'))
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'members' || Request::segment('2') == 'member' ? 'active' : '' }}">
-                <a href="{{ url('/admin/members') }}" class="flex items-center">
-                    <i class="fas fa-users w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Members</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'guests' || Request::segment('2') == 'guest' ? 'active' : '' }}">
-                <a href="{{ url('/admin/guests') }}" class="flex items-center">
-                    <i class="fas fa-user-clock w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Guests</span>
-                </a>
-            </li>
-            @endif
-            @if($isAdmin)
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'subadmins' || Request::segment('2') == 'subadmin' ? 'active' : '' }}">
-                <a href="{{ url('/admin/subadmins') }}" class="flex items-center">
-                    <i class="fas fa-user-shield w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Sub Admins</span>
-                </a>
-            </li>
-            @endif
-        </ul>
-    </li>
-    @endif
+        <p class="admin-side-group-label">CHURCH LIFE</p>
+        @if($isChurchAdmin)<a class="admin-side-link {{ in_array($navSegment,['branches','branch']) ? 'is-active' : '' }}" href="{{ url('/admin/branches') }}" data-mobile-sidebar-close><i class="fas fa-code-branch"></i><span>Branches</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-members'))
+            <details class="admin-side-group" {{ in_array($navSegment, ['members','member','guests','guest','subadmins','subadmin']) ? 'open' : '' }}>
+                <summary><i class="fas fa-users"></i><span>People</span><i class="fas fa-chevron-down admin-side-chevron"></i></summary>
+                <div class="admin-side-subnav">
+                    @if($isChurchAdmin || $navUser->hasPermission('read-members'))
+                        <a class="{{ in_array($navSegment,['members','member']) ? 'is-active' : '' }}" href="{{ url('/admin/members') }}" data-mobile-sidebar-close>Members</a>
+                        <a class="{{ in_array($navSegment,['guests','guest']) ? 'is-active' : '' }}" href="{{ url('/admin/guests') }}" data-mobile-sidebar-close>Guests</a>
+                    @endif
+                    @if($isChurchAdmin)<a class="{{ in_array($navSegment,['subadmins','subadmin']) ? 'is-active' : '' }}" href="{{ url('/admin/subadmins') }}" data-mobile-sidebar-close>Sub-admins</a>@endif
+                </div>
+            </details>
+        @endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-groups'))<a class="admin-side-link {{ in_array($navSegment,['groups','group']) ? 'is-active' : '' }}" href="{{ url('/admin/groups') }}" data-mobile-sidebar-close><i class="fas fa-people-group"></i><span>Groups</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-events'))<a class="admin-side-link {{ in_array($navSegment,['events','event']) ? 'is-active' : '' }}" href="{{ url('/admin/events') }}" data-mobile-sidebar-close><i class="fas fa-calendar-days"></i><span>Events</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-prayers'))<a class="admin-side-link {{ in_array($navSegment,['prayerboard','prayercategories','prayercategory']) ? 'is-active' : '' }}" href="{{ url('/admin/prayerboard') }}" data-mobile-sidebar-close><i class="fas fa-hands-praying"></i><span>Prayer board</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-helps'))<a class="admin-side-link {{ $navSegment === 'helps' ? 'is-active' : '' }}" href="{{ url('/admin/helps') }}" data-mobile-sidebar-close><i class="fas fa-life-ring"></i><span>Help requests</span></a>@endif
 
-    @if($isAdmin || $user->hasPermission('read-groups'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['groups','group']) ? 'active' : '' }}">
-        <a href="{{ url('admin/groups') }}" class="flex items-center">
-            <i class="fas fa-people-group w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Groups</span>
-        </a>
-    </li>
-    @endif
+        <p class="admin-side-group-label">CONTENT &amp; MEDIA</p>
+        @if($isChurchAdmin || $navUser->hasPermission('read-sermons'))<a class="admin-side-link {{ in_array($navSegment,['sermons','sermon']) ? 'is-active' : '' }}" href="{{ url('/admin/sermons') }}" data-mobile-sidebar-close><i class="fas fa-microphone-lines"></i><span>Sermons</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-bulletins'))<a class="admin-side-link {{ in_array($navSegment,['bulletins','bulletin']) ? 'is-active' : '' }}" href="{{ url('/admin/bulletins') }}" data-mobile-sidebar-close><i class="fas fa-newspaper"></i><span>Bulletins</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-gallery'))<a class="admin-side-link {{ $navSegment === 'gallery' ? 'is-active' : '' }}" href="{{ url('/admin/gallery') }}" data-mobile-sidebar-close><i class="fas fa-images"></i><span>Gallery</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-files'))<a class="admin-side-link {{ in_array($navSegment,['mediafiles','mediafile']) ? 'is-active' : '' }}" href="{{ url('/admin/mediafiles') }}" data-mobile-sidebar-close><i class="fas fa-photo-film"></i><span>Media library</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-quotes'))<a class="admin-side-link {{ in_array($navSegment,['quotes','quote']) ? 'is-active' : '' }}" href="{{ url('/admin/quotes') }}" data-mobile-sidebar-close><i class="fas fa-quote-left"></i><span>Quotes &amp; verses</span></a>@endif
 
-    {{-- ── Events ───────────────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('read-events'))
-    <li class="py-2 px-3 {{ Request::segment('2') == 'events' ? 'active' : '' }}">
-        <a href="{{ url('admin/events') }}" class="flex items-center">
-            <i class="fas fa-calendar-days w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Events / Calendar</span>
-        </a>
-    </li>
-    @endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-members'))<a class="admin-side-link {{ in_array($navSegment,['messages','message']) ? 'is-active' : '' }}" href="{{ url('/admin/messages') }}" data-mobile-sidebar-close><i class="fas fa-envelope"></i><span>Member messages</span></a>@endif
 
+        @php($showEmailTools = $isChurchAdmin || $navUser->hasPermission('manage-email-blaster'))
+        @if($showEmailTools || $isChurchAdmin)
+            <p class="admin-side-group-label">COMMUNICATION</p>
+        @endif
+        @if($isChurchAdmin)
+            <a class="admin-side-link {{ $navSegment === 'communications' ? 'is-active' : '' }}" href="{{ route('admin.communication.index') }}" data-mobile-sidebar-close><i class="fas fa-bullhorn"></i><span>Communications</span></a>
+        @endif
+        @if($showEmailTools)
+            <details class="admin-side-group" {{ in_array($navSegment,$emailSegments) ? 'open' : '' }}>
+                <summary><i class="fas fa-paper-plane"></i><span>Email tools</span><i class="fas fa-chevron-down admin-side-chevron"></i></summary>
+                <div class="admin-side-subnav">
+                    <a class="{{ in_array($navSegment,['campaigns','campaign']) ? 'is-active' : '' }}" href="{{ url('/admin/campaigns') }}" data-mobile-sidebar-close>Campaigns</a>
+                    <a class="{{ in_array($navSegment,['emails','email']) ? 'is-active' : '' }}" href="{{ url('/admin/emails') }}" data-mobile-sidebar-close>Emails</a>
+                    <a class="{{ in_array($navSegment,['subscribers','subscriber']) ? 'is-active' : '' }}" href="{{ url('/admin/subscribers') }}" data-mobile-sidebar-close>Subscribers</a>
+                    <a class="{{ in_array($navSegment,['mailinglists','mailinglist']) ? 'is-active' : '' }}" href="{{ url('/admin/mailinglists') }}" data-mobile-sidebar-close>Mailing lists</a>
+                    <a class="{{ $navSegment === 'newsletter' ? 'is-active' : '' }}" href="{{ url('/admin/newsletter/send') }}" data-mobile-sidebar-close>Send newsletter</a>
+                    <span class="admin-side-subheading">DELIVERY &amp; SETTINGS</span>
+                    <a class="{{ in_array($navSegment,['rules','rule']) ? 'is-active' : '' }}" href="{{ url('/admin/rules') }}" data-mobile-sidebar-close>Rules</a>
+                    <a class="{{ in_array($navSegment,['mails-delivered','mail-delivered']) ? 'is-active' : '' }}" href="{{ url('/admin/mails-delivered') }}" data-mobile-sidebar-close>Delivered mail</a>
+                    <a class="{{ in_array($navSegment,['mailqueues','mailqueue']) ? 'is-active' : '' }}" href="{{ url('/admin/mailqueues') }}" data-mobile-sidebar-close>Mail queues</a>
+                    <a class="{{ in_array($navSegment,['smtps','smtp']) ? 'is-active' : '' }}" href="{{ url('/admin/smtps') }}" data-mobile-sidebar-close>SMTP</a>
+                    <a class="{{ in_array($navSegment,['webhooks','webhook']) ? 'is-active' : '' }}" href="{{ url('/admin/webhooks') }}" data-mobile-sidebar-close>Webhooks</a>
+                </div>
+            </details>
+        @endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-contacts'))<a class="admin-side-link {{ in_array($navSegment,['contacts','contact']) ? 'is-active' : '' }}" href="{{ url('/admin/contacts') }}" data-mobile-sidebar-close><i class="fas fa-inbox"></i><span>Contact requests</span></a>@endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-feedbacks'))<a class="admin-side-link {{ in_array($navSegment,['feedbacks','feedback']) ? 'is-active' : '' }}" href="{{ url('/admin/feedbacks') }}" data-mobile-sidebar-close><i class="fas fa-comment-dots"></i><span>Feedback</span></a>@endif
 
+        @if($isChurchAdmin || $navUser->hasPermission('read-payments') || $navUser->hasPermission('read-funds'))
+            <p class="admin-side-group-label">FINANCE</p>
+            <details class="admin-side-group" {{ in_array($navSegment,$financeSegments) ? 'open' : '' }}>
+                <summary><i class="fas fa-hand-holding-dollar"></i><span>Giving &amp; finance</span><i class="fas fa-chevron-down admin-side-chevron"></i></summary>
+                <div class="admin-side-subnav">
+                    @if($isChurchAdmin || $navUser->hasPermission('read-funds'))<a class="{{ in_array($navSegment,['donations','donation']) ? 'is-active' : '' }}" href="{{ url('/admin/donations') }}" data-mobile-sidebar-close>Donations</a>@endif
+                    @if($isChurchAdmin || $navUser->hasPermission('read-payments'))<a class="{{ in_array($navSegment,['payaccounts','payaccount']) ? 'is-active' : '' }}" href="{{ url('/admin/payaccounts') }}" data-mobile-sidebar-close>Pay accounts</a><a class="{{ in_array($navSegment,['paymentgateways','paymentgateway']) ? 'is-active' : '' }}" href="{{ url('/admin/paymentgateways') }}" data-mobile-sidebar-close>Payment gateways</a>@endif
+                    @if($isChurchAdmin || $navUser->hasPermission('read-funds'))<a class="{{ in_array($navSegment,['funds','fund']) ? 'is-active' : '' }}" href="{{ url('/admin/funds') }}" data-mobile-sidebar-close>Funds</a>@endif
+                </div>
+            </details>
+        @endif
 
-    {{-- ── Ministry Content ─────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('read-sermons'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['sermons','sermon']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/sermons') }}" class="flex items-center">
-            <i class="fas fa-microphone w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Sermons</span>
-        </a>
-    </li>
-    @endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-reports') || $navUser->hasPermission('manage-cms') || $isChurchAdmin)
+            <p class="admin-side-group-label">MANAGEMENT</p>
+        @endif
+        @if($isChurchAdmin || $navUser->hasPermission('read-reports'))<a class="admin-side-link {{ in_array($navSegment,['reports','report']) ? 'is-active' : '' }}" href="{{ url('/admin/reports') }}" data-mobile-sidebar-close><i class="fas fa-chart-pie"></i><span>Reports</span></a>@endif
+        <a class="admin-side-link {{ $navSegment === 'activity' ? 'is-active' : '' }}" href="{{ url('/admin/activity') }}" data-mobile-sidebar-close><i class="fas fa-clock-rotate-left"></i><span>Activity log</span></a>
 
-    @if($isAdmin || $user->hasPermission('read-bulletins'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['bulletins','bulletin']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/bulletins') }}" class="flex items-center">
-            <i class="fas fa-newspaper w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Bulletin</span>
-        </a>
-    </li>
-    @endif
+        @if($isChurchAdmin || $navUser->hasPermission('manage-cms'))
+            <details class="admin-side-group" {{ in_array($navSegment,$websiteSegments) ? 'open' : '' }}>
+                <summary><i class="fas fa-globe"></i><span>Website content</span><i class="fas fa-chevron-down admin-side-chevron"></i></summary>
+                <div class="admin-side-subnav">
+                    <a class="{{ in_array($navSegment,['hero-banners']) ? 'is-active' : '' }}" href="{{ route('admin.hero-banners.index') }}" data-mobile-sidebar-close>Home banners &amp; live</a>
+                    <a class="{{ in_array($navSegment,['pages','page']) ? 'is-active' : '' }}" href="{{ url('/admin/pages') }}" data-mobile-sidebar-close>Pages</a>
+                    <a class="{{ in_array($navSegment,['posts','post']) ? 'is-active' : '' }}" href="{{ url('/admin/posts') }}" data-mobile-sidebar-close>Posts</a>
+                    <a class="{{ $navSegment === 'faq' ? 'is-active' : '' }}" href="{{ url('/admin/faq') }}" data-mobile-sidebar-close>FAQs</a>
+                    <a class="{{ $navSegment === 'widgets' ? 'is-active' : '' }}" href="{{ url('/admin/widgets') }}" data-mobile-sidebar-close>Code snippets</a>
+                    <span class="admin-side-subheading">CATEGORIES</span>
+                    <a class="{{ $navSegment === 'page-categories' ? 'is-active' : '' }}" href="{{ url('/admin/page-categories') }}" data-mobile-sidebar-close>Page categories</a>
+                    <a class="{{ $navSegment === 'post-categories' ? 'is-active' : '' }}" href="{{ url('/admin/post-categories') }}" data-mobile-sidebar-close>Post categories</a>
+                    <a class="{{ $navSegment === 'faq-categories' ? 'is-active' : '' }}" href="{{ url('/admin/faq-categories') }}" data-mobile-sidebar-close>FAQ categories</a>
+                </div>
+            </details>
+        @endif
+        @if($isChurchAdmin)
+            <a class="admin-side-link {{ in_array($navSegment,['settings','countries','country','states','state','cities','city']) ? 'is-active' : '' }}" href="{{ url('/admin/settings/generalsettings') }}" data-mobile-sidebar-close><i class="fas fa-gear"></i><span>Settings</span></a>
+            <details class="admin-side-group" {{ in_array($navSegment,['countries','country','states','state','cities','city']) ? 'open' : '' }}>
+                <summary><i class="fas fa-database"></i><span>Location data</span><i class="fas fa-chevron-down admin-side-chevron"></i></summary>
+                <div class="admin-side-subnav"><a class="{{ in_array($navSegment,['countries','country']) ? 'is-active' : '' }}" href="{{ url('/admin/countries') }}" data-mobile-sidebar-close>Countries</a><a class="{{ in_array($navSegment,['states','state']) ? 'is-active' : '' }}" href="{{ url('/admin/states') }}" data-mobile-sidebar-close>States</a><a class="{{ in_array($navSegment,['cities','city']) ? 'is-active' : '' }}" href="{{ url('/admin/cities') }}" data-mobile-sidebar-close>Cities</a></div>
+            </details>
+        @endif
+    </nav>
+    <div class="admin-side-footer"><span class="admin-side-footer-mark">IGM</span><span><b>IGM Church</b><small>Church management</small></span></div>
+</aside>
 
-    @if($isAdmin || $user->hasPermission('read-gallery'))
-    <li class="py-2 px-3 {{ Request::segment('2') == 'gallery' ? 'active' : '' }}">
-        <a href="{{ url('admin/gallery') }}" class="flex items-center">
-            <i class="fas fa-images w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Gallery</span>
-        </a>
-    </li>
-    @endif
+@if(!($mobileNavigation ?? false))
 
-    @if($isAdmin || $user->hasPermission('read-files'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['mediafiles','mediafile']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/mediafiles') }}" class="flex items-center">
-            <i class="fas fa-photo-film w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Media Files</span>
-        </a>
-    </li>
-    @endif
-
-    @if($isAdmin || $user->hasPermission('read-quotes'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['quotes','quote']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/quotes') }}" class="flex items-center">
-            <i class="fas fa-quote-left w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Quotes / Bible Verse</span>
-        </a>
-    </li>
-    @endif
-
-    {{-- ── Community ────────────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('read-prayers'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['prayerboard','prayercategories','prayercategory']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/prayerboard') }}" class="flex items-center whitespace-no-wrap">
-            <i class="fas fa-hands-praying w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Prayer Board</span>
-        </a>
-    </li>
-    @endif
-
-    @if($isAdmin || $user->hasPermission('read-helps'))
-    <li class="py-2 px-3 {{ Request::segment('2') == 'helps' ? 'active' : '' }}">
-        <a href="{{ url('/admin/helps') }}" class="flex items-center whitespace-no-wrap">
-            <i class="fas fa-life-ring w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Help Requests</span>
-        </a>
-    </li>
-    @endif
-
-
-    @if($isAdmin || $user->hasPermission('read-members'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['messages','message']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/messages') }}" class="flex items-center">
-            <i class="fas fa-envelope w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Messages</span>
-        </a>
-    </li>
-    @endif
-
-    {{-- ── Financial ────────────────────────────────────────────────────── --}}
-    @php
-    $showOfferings = $isAdmin || $user->hasPermission('read-payments') || $user->hasPermission('read-funds');
-    $offeringsActive = in_array(Request::segment('2'), ['payaccounts','payaccount','funds','fund','donations','donation','paymentgateways','paymentgateway']) ? 'active' : '';
-    @endphp
-    @if($showOfferings)
-    <li class="relative py-2 px-3 hover:bg-red-900 {{ $offeringsActive }}">
-        <a href="#" class="flex items-center">
-            <i class="fas fa-hand-holding-dollar w-5 text-center text-sm opacity-75"></i>
-            <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">Offerings</span>
-            <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-        </a>
-        <ul class="list-reset sites-sidebar">
-            @if($isAdmin || $user->hasPermission('read-funds'))
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['donations','donation']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/donations') }}" class="flex items-center">
-                    <i class="fas fa-heart-circle-plus w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Donations</span>
-                </a>
-            </li>
-            @endif
-            @if($isAdmin || $user->hasPermission('read-payments'))
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['payaccounts','payaccount']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/payaccounts') }}" class="flex items-center">
-                    <i class="fas fa-credit-card w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Payaccounts</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['paymentgateways','paymentgateway']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/paymentgateways') }}" class="flex items-center">
-                    <i class="fas fa-money-bill-transfer w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Payment Gateways</span>
-                </a>
-            </li>
-            @endif
-            @if($isAdmin || $user->hasPermission('read-funds'))
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['funds','fund']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/funds') }}" class="flex items-center">
-                    <i class="fas fa-piggy-bank w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Funds</span>
-                </a>
-            </li>
-            @endif
-        </ul>
-    </li>
-    @endif
-
-    {{-- ── Communication ────────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('manage-email-blaster'))
-    @php
-    $emailArray = ['campaigns','emails','email','campaign','subscribers','subscriber','mailinglists','email-templates','mailinglist','mailqueues','mailqueue','smtps','smtp','newsletter','rules','rule','mails-delivered','mail-delivered','webhooks','webhook'];
-    $emailActive = in_array(Request::segment('2'), $emailArray) ? 'active' : '';
-    @endphp
-    <li class="relative py-3 px-3 hover:font-semibold {{ $emailActive }}">
-        <a href="#" class="flex items-center whitespace-no-wrap text-white">
-            <i class="fas fa-paper-plane w-5 text-center text-sm opacity-75"></i>
-            <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">Email Blaster</span>
-            <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-        </a>
-        <ul class="list-reset sites-sidebar" style="bottom: 0; top: auto;">
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['campaigns','campaign']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/campaigns') }}" class="flex items-center text-white">
-                    <i class="fas fa-bullhorn w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Campaigns</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['emails','email']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/emails') }}" class="flex items-center">
-                    <i class="fas fa-envelope-open w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Emails</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['subscribers','subscriber']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/subscribers') }}" class="flex items-center">
-                    <i class="fas fa-user-group w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Subscribers</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['mailinglists','mailinglist']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/mailinglists') }}" class="flex items-center">
-                    <i class="fas fa-list w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Mailing List</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'newsletter' ? 'active' : '' }}">
-                <a href="{{ url('/admin/newsletter/send') }}" class="flex items-center">
-                    <i class="fas fa-paper-plane w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Send Newsletter</span>
-                </a>
-            </li>
-            @php
-            $emailSettingsArray = ['rules','rule','mails-delivered','mail-delivered','mailqueues','mailqueue','smtps','smtp','webhooks','webhook'];
-            $emailSettingsActive = in_array(Request::segment('2'), $emailSettingsArray) ? 'active' : '';
-            @endphp
-            <li class="py-3 px-3 hover:font-semibold {{ $emailSettingsActive }}">
-                <a href="#" class="flex items-center">
-                    <i class="fas fa-gear w-5 text-center text-sm opacity-75"></i>
-                    <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">Settings</span>
-                    <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-                </a>
-                <ul class="list-reset sites-sidebar" style="bottom: 0;top: auto;">
-                    <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['rules','rule']) ? 'active' : '' }}">
-                        <a href="{{ url('/admin/rules') }}" class="flex items-center">
-                            <i class="fas fa-shield-halved w-5 text-center text-sm opacity-75"></i>
-                            <span class="mx-3 whitespace-no-wrap">Rules</span>
-                        </a>
-                    </li>
-                    <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['mails-delivered','mail-delivered']) ? 'active' : '' }}">
-                        <a href="{{ url('/admin/mails-delivered') }}" class="flex items-center">
-                            <i class="fas fa-circle-check w-5 text-center text-sm opacity-75"></i>
-                            <span class="mx-3 whitespace-no-wrap">Mails Delivered</span>
-                        </a>
-                    </li>
-                    <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['mailqueues','mailqueue']) ? 'active' : '' }}">
-                        <a href="{{ url('/admin/mailqueues') }}" class="flex items-center">
-                            <i class="fas fa-clock w-5 text-center text-sm opacity-75"></i>
-                            <span class="mx-3 whitespace-no-wrap">Mail Queues</span>
-                        </a>
-                    </li>
-                    <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['smtps','smtp']) ? 'active' : '' }}">
-                        <a href="{{ url('/admin/smtps') }}" class="flex items-center">
-                            <i class="fas fa-server w-5 text-center text-sm opacity-75"></i>
-                            <span class="mx-3 whitespace-no-wrap">SMTPs</span>
-                        </a>
-                    </li>
-                    <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['webhooks','webhook']) ? 'active' : '' }}">
-                        <a href="{{ url('/admin/webhooks') }}" class="flex items-center">
-                            <i class="fas fa-plug w-5 text-center text-sm opacity-75"></i>
-                            <span class="mx-3 whitespace-no-wrap">Webhooks</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </li>
-    @endif
-
-    {{-- ── Inbox ────────────────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('read-contacts'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['contacts','contact']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/contacts') }}" class="flex items-center">
-            <i class="fas fa-phone-volume w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Contact Requests</span>
-        </a>
-    </li>
-    @endif
-
-    @if($isAdmin || $user->hasPermission('read-feedbacks'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['feedbacks','feedback']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/feedbacks') }}" class="flex items-center">
-            <i class="fas fa-comment-dots w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Feedbacks</span>
-        </a>
-    </li>
-    @endif
-
-    {{-- ── Reporting ────────────────────────────────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('read-reports'))
-    <li class="py-2 px-3 {{ in_array(Request::segment('2'), ['reports','report']) ? 'active' : '' }}">
-        <a href="{{ url('/admin/reports') }}" class="flex items-center">
-            <i class="fas fa-chart-bar w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Reports</span>
-        </a>
-    </li>
-    @endif
-
-    <li class="py-2 px-3 {{ Request::segment('2') == 'activity' ? 'active' : '' }}">
-        <a href="{{ url('/admin/activity') }}" class="flex items-center">
-            <i class="fas fa-clipboard-list w-5 text-center text-sm opacity-75"></i>
-            <span class="mx-3 whitespace-no-wrap">Activity Logs</span>
-        </a>
-    </li>
-
-    {{-- ── WebCMS (admin + manage-cms subadmin) ────────────────────────── --}}
-    @if($isAdmin || $user->hasPermission('manage-cms'))
-    @php
-    $webCmsArray = ['pages','page','page-categories','pageCategory','posts','post','post-categories','postCategory','faq','faq-categories','widgets','google-analytics'];
-    $webCmsActive = in_array(Request::segment('2'), $webCmsArray) ? 'active' : '';
-    @endphp
-    <li class="relative py-2 px-3 hover:bg-red-900 {{ $webCmsActive }}">
-        <a href="#" class="flex items-center">
-            <i class="fas fa-globe w-5 text-center text-sm opacity-75"></i>
-            <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">WebCMS</span>
-            <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-        </a>
-        <ul class="list-reset sites-sidebar" style="bottom: 0; top: auto;">
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['pages','page']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/pages') }}" class="flex items-center">
-                    <i class="fas fa-file-lines w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Pages</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ in_array(Request::segment('2'), ['posts','post']) ? 'active' : '' }}">
-                <a href="{{ url('/admin/posts') }}" class="flex items-center">
-                    <i class="fas fa-pen-to-square w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Posts</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'faq' && Request::segment('3') != 'categories' ? 'active' : '' }}">
-                <a href="{{ url('admin/faq') }}" class="flex items-center">
-                    <i class="fas fa-circle-question w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">FAQ</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'widgets' ? 'active' : '' }}">
-                <a href="{{ url('/admin/widgets') }}" class="flex items-center">
-                    <i class="fas fa-code w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Code Snippets</span>
-                </a>
-            </li>
-            <hr class="border-white/10 my-1">
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'page-categories' ? 'active' : '' }}">
-                <a href="{{ url('/admin/page-categories') }}" class="flex items-center">
-                    <i class="fas fa-folder w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Page Categories</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'post-categories' ? 'active' : '' }}">
-                <a href="{{ url('/admin/post-categories') }}" class="flex items-center">
-                    <i class="fas fa-folder-open w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">Post Categories</span>
-                </a>
-            </li>
-            <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'faq-categories' ? 'active' : '' }}">
-                <a href="{{ url('/admin/faq-categories') }}" class="flex items-center">
-                    <i class="fas fa-folder-tree w-5 text-center text-sm opacity-75"></i>
-                    <span class="mx-3 whitespace-no-wrap">FAQ Categories</span>
-                </a>
-            </li>
-            {{--<li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'google-analytics' ? 'active' : '' }}">
-            <a href="{{ url('/admin/google-analytics') }}" class="flex items-center">
-                <i class="fas fa-chart-line w-5 text-center text-sm opacity-75"></i>
-                <span class="mx-3 whitespace-no-wrap">Google Analytics</span>
-            </a>
-    </li>--}}
-</ul>
-</li>
 @endif
-
-{{-- ── Settings (admin only) ──────────────────────────────────────── --}}
-@if($isAdmin)
-<li class="py-2 px-3 {{ Request::segment('2') == 'settings' ? 'active' : '' }}">
-    <a href="{{ url('/admin/settings/generalsettings') }}" class="flex items-center">
-        <i class="fas fa-gear w-5 text-center text-sm opacity-75"></i>
-        <span class="mx-3 whitespace-no-wrap">Settings</span>
-    </a>
-</li>
-@endif
-
-{{-- ── Config (admin only) ─────────────────────────────────────────── --}}
-@if($isAdmin)
-@php
-$masterDataActive = in_array(Request::segment('2'), ['countries','country','states','state','cities','city']) ? 'active' : '';
-@endphp
-<li class="relative py-2 px-3 hover:bg-red-900 {{ $masterDataActive }}">
-    <a href="#" class="flex items-center">
-        <i class="fas fa-database w-5 text-center text-sm opacity-75"></i>
-        <span class="ml-3 whitespace-no-wrap flex items-center justify-between w-10/12">Master Data</span>
-        <i class="fas fa-chevron-right text-xs ml-auto opacity-50"></i>
-    </a>
-    <ul class="list-reset sites-sidebar" style="bottom: 0; top: auto;">
-        <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'countries' ? 'active' : '' }}">
-            <a href="{{ url('/admin/countries') }}" class="flex items-center">
-                <i class="fas fa-earth-americas w-5 text-center text-sm opacity-75"></i>
-                <span class="mx-3 whitespace-no-wrap">Countries</span>
-            </a>
-        </li>
-        <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'states' ? 'active' : '' }}">
-            <a href="{{ url('/admin/states') }}" class="flex items-center">
-                <i class="fas fa-map w-5 text-center text-sm opacity-75"></i>
-                <span class="mx-3 whitespace-no-wrap">States</span>
-            </a>
-        </li>
-        <li class="py-3 px-3 hover:font-semibold {{ Request::segment('2') == 'cities' ? 'active' : '' }}">
-            <a href="{{ url('/admin/cities') }}" class="flex items-center">
-                <i class="fas fa-city w-5 text-center text-sm opacity-75"></i>
-                <span class="mx-3 whitespace-no-wrap">Cities</span>
-            </a>
-        </li>
-    </ul>
-</li>
-@endif
-
-</ul>

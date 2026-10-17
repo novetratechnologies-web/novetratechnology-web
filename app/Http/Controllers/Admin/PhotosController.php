@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Photos;
 use App\Models\Gallery;
 use App\Traits\Common;
@@ -61,59 +62,62 @@ class PhotosController extends Controller
      */
     public function store(Request $request,$gallery_id)
     {
+        $validated = $request->validate([
+            'data' => ['required', 'array', 'min:1', 'max:30'],
+            'data.*.path' => ['required', 'string', 'regex:/^data:image\/(jpeg|png|webp);base64,/'],
+        ]);
+
         try
         {
-           for ($i=0;$i<count($request->data);$i++)
+            $gallery = Gallery::where('church_id', Auth::user()->church_id)->findOrFail($gallery_id);
+
+            $savedPhotos = [];
+            foreach ($validated['data'] as $item)
             {
-                $image_parts    = explode(";base64,",$request->data[$i]['path']);
-                $image_type_aux = explode("image/",$image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $church_id      = Auth::user()->church_id;
-
-                $location        = Auth::user()->church_id.'/gallery/covers/'.$gallery_id;
-
-
-                $file            =  uniqid() .'.png';
-
-                $db_path=$location.$file;
-                /*if( ! File::isDirectory($location_path))
-                {
-                    File::makeDirectory($location_path,0777, true);
+                [$header, $encoded] = explode(',', $item['path'], 2);
+                $image = base64_decode($encoded, true);
+                if ($image === false || strlen($image) > 5 * 1024 * 1024) {
+                    return response()->json(['message' => 'Each image must be a valid image under 5 MB.'], 422);
                 }
 
-                $path= $location_path. $file;
-                $img = \File::put($path, $image_base64);*/
-                $img = $this->putContents($db_path, $image_base64);
+                $mime = str_contains($header, 'image/jpeg') ? 'image/jpeg' : (str_contains($header, 'image/webp') ? 'image/webp' : 'image/png');
+                $imageInfo = @getimagesizefromstring($image);
+                if (!$imageInfo || $imageInfo['mime'] !== $mime) {
+                    return response()->json(['message' => 'One of the uploaded files is not a valid image.'], 422);
+                }
+
+                $extension = $mime === 'image/jpeg' ? 'jpg' : ($mime === 'image/webp' ? 'webp' : 'png');
+                $dbPath = Auth::user()->church_id . '/gallery/covers/' . $gallery->id . '/' . Str::uuid() . '.' . $extension;
+                if (!Storage::disk('public')->put($dbPath, $image)) {
+                    throw new Exception('Unable to write gallery image to public storage.');
+                }
 
                 $create = [
-
-                 'gallery_id'   => $gallery_id,
-                 'church_id'    => $church_id,
-                 'path'         => $db_path,
-                 'created_by'   => Auth::id(),
-                 'updated_by'   => Auth::id(),
+                    'gallery_id' => $gallery->id,
+                    'church_id' => Auth::user()->church_id,
+                    'path' => $dbPath,
+                    'created_by' => Auth::id(),
+                    'updated_by' => Auth::id(),
                 ];
-                $photo = Photos::create($create);
+                $savedPhotos[] = Photos::create($create);
             }
 
             $message=('Photos Added Successfully');
 
             $ip= $this->getRequestIP();
             $this->doActivityLog(
-                $photo,
+                $gallery,
                 Auth::user(),
                 ['ip' => $ip, 'details' => $_SERVER['HTTP_USER_AGENT'] ],
                 LOGNAME_ADD_PHOTO,
                 $message
             );
-           $res['message']="Uploaded Successfully";
-           return $res;
+            return response()->json(['message' => 'Uploaded Successfully', 'count' => count($savedPhotos)]);
        }
        catch (Exception $e)
         {
-            Log::info($e->getMessage());
-
+            Log::error('Gallery photo upload failed', ['exception' => $e]);
+            return response()->json(['message' => 'Photo upload failed. Please try again.'], 500);
         }
     }
 
@@ -139,7 +143,7 @@ class PhotosController extends Controller
      public function showdetails($gallery_id)
     {
 
-        $photos = Photos::where([['gallery_id',$gallery_id],['church_id',Auth::user()->church_id]])->get();
+        $photos = Photos::with('gallery')->where([['gallery_id',$gallery_id],['church_id',Auth::user()->church_id]])->get();
         $photos = ShowPhotosResource::collection($photos);
         return $photos;
     }
@@ -155,7 +159,11 @@ class PhotosController extends Controller
         //
         try
         {
-            $photo = Photos::where('id',$id)->first();
+            $photo = Photos::where('church_id', Auth::user()->church_id)->findOrFail($id);
+
+            if ($photo->path && !str_starts_with($photo->path, 'http')) {
+                Storage::disk('public')->delete($photo->path);
+            }
 
             $photo->delete();
 

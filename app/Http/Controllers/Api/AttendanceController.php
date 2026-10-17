@@ -191,9 +191,7 @@ class AttendanceController extends Controller
             return response()->json([
                 'status'      => 'already_checked_in',
                 'member_name' => $member->name,
-                'avatar_url'  => $member->userprofile?->avatar
-                    ? \Storage::disk('public')->url($member->userprofile->avatar)
-                    : null,
+                'avatar_url'  => $member->userprofile?->AvatarPath ?: null,
                 'scanned_at'  => $existing->scanned_at,
             ], 409);
         }
@@ -211,9 +209,7 @@ class AttendanceController extends Controller
             return response()->json([
                 'status'      => 'checked_in',
                 'member_name' => $member->name,
-                'avatar_url'  => $member->userprofile?->avatar
-                    ? \Storage::disk('public')->url($member->userprofile->avatar)
-                    : null,
+                'avatar_url'  => $member->userprofile?->AvatarPath ?: null,
                 'scanned_at'  => $attendee->scanned_at,
             ]);
         } catch (Exception $e) {
@@ -307,9 +303,7 @@ class AttendanceController extends Controller
                 return [
                     'member_id'   => $a->user_id,
                     'member_name' => $a->member->name,
-                    'avatar_url'  => $a->userprofile?->avatar
-                        ? \Storage::disk('public')->url($a->userprofile->avatar)
-                        : null,
+                    'avatar_url'  => $a->userprofile?->AvatarPath ?: null,
                     'mobile_no'   => $a->member->mobile_no,
                     'scanned_at'  => $a->scanned_at,
                     'scanned_by'  => $a->scannedBy?->name,
@@ -335,9 +329,7 @@ class AttendanceController extends Controller
                 return [
                     'member_id'   => $user->id,
                     'member_name' => $user->name,
-                    'avatar_url'  => $user->userprofile?->avatar
-                        ? \Storage::disk('public')->url($user->userprofile->avatar)
-                        : null,
+                    'avatar_url'  => $user->userprofile?->AvatarPath ?: null,
                     'mobile_no'   => $user->mobile_no,
                 ];
             });

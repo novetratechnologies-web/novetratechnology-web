@@ -15,6 +15,18 @@
     <form method="POST" action="{{ url('/admin/subadmin/add') }}" enctype="multipart/form-data">
         @csrf
 
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
+            <div class="px-6 py-4 border-b border-gray-100"><h2 class="text-sm font-semibold text-gray-700">Branch assignment</h2><p class="mt-1 text-xs text-gray-500">Content created by this staff account will be associated with this branch.</p></div>
+            <div class="px-6 py-5">
+                <label class="tw-form-label" for="branch_id">Assigned branch <span class="text-red-500">*</span></label>
+                <select id="branch_id" name="branch_id" required class="tw-form-control w-full max-w-xl @error('branch_id') border-red-400 @enderror">
+                    <option value="">Choose a branch</option>
+                    @foreach($branches as $branch)<option value="{{ $branch->id }}" @selected((string)old('branch_id', $branch->is_headquarters ? $branch->id : '') === (string)$branch->id)>{{ $branch->name }}{{ $branch->is_headquarters ? ' · Headquarters' : '' }}</option>@endforeach
+                </select>
+                @error('branch_id')<p class="tw-form-error">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
         {{-- ── Personal Information ─────────────────────────────────────── --}}
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
             <div class="px-6 py-4 border-b border-gray-100">

@@ -54,7 +54,7 @@
                             </td>
                             <td class="px-2 py-2 text-center">
                                 @if ($sermon->pdf_link)
-                                    <a href="{{ \Storage::url($sermon->pdf_link) }}" target="_blank" rel="noopener noreferrer"
+                                    <a href="{{ app(\App\Support\PublicFileUrl::class)->resolve($sermon->pdf_link) }}" target="_blank" rel="noopener noreferrer"
                                        class="text-xs text-blue-600 hover:underline">Download</a>
                                 @else
                                     <span class="text-gray-300 text-xs">—</span>

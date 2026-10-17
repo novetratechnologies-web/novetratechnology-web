@@ -30,9 +30,16 @@ class EventCreateRequest extends FormRequest
             'category'     => 'required',
             'organised_by' => 'required',
             'location'     => 'required|check_location',
-            'event_date'   => 'required|date|after_or_equal:yesterday',
+            'event_date'   => 'required|date',
             'start_time'   => 'required',
             'duration'     => 'required',
+            'video_url'    => ['nullable', 'url', 'max:2048', function ($attribute, $value, $fail) {
+                if (!$value) return;
+                $host = strtolower(parse_url($value, PHP_URL_HOST) ?: '');
+                if (!in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
+                    $fail('Use a YouTube video, live, or short URL.');
+                }
+            }],
             'enable_attendance' => 'nullable',
             'publish_to_web'    => 'nullable',
             'enable_gallery'    => 'nullable',
@@ -70,7 +77,6 @@ class EventCreateRequest extends FormRequest
             'location.required'         => 'Location is required.',
             'location.check_location'   => 'Location contains invalid characters.',
             'event_date.required'       => 'Event date is required.',
-            'event_date.after_or_equal' => 'Event date cannot be in the past.',
             'start_time.required'       => 'Start time is required.',
             'duration.required'         => 'Please select a duration.',
             'freq.required'             => 'Repeat frequency is required.',

@@ -1,28 +1,12 @@
 <template>
-    <div class="bg-white shadow rounded p-2">
-
-                    <div class="w-full">
-                        <ul class="list-reset py-1" v-for="sermon in sermons" v-bind:key="sermon.id">
-                            <li class="py-2">
-                                <div class="flex items-center">
-                                    <div class="w-1/6">
-                                        <img :src="sermon.cover_image" class="rounded">
-                                    </div>
-                                    <div class="ml-2 w-5/6">
-                                        <a :href="url+'/admin/sermon/show/'+sermon.sermons_id" class="text-gray-700 font-semibold text-sm">{{ sermon.title }}</a>
-                                        <p class="text-xs text-purple-500 flex items-center">{{ sermon.sermon_date }}
-                                            <span class="mx-2 italic text-gray-700">by</span>
-                                            <a :href="url+'/admin/preacher/show/'+sermon.name">{{ sermon.fullname }}</a>
-                                        </p>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                         <div class="py-2" v-if="this.sermons == ''">
-                        <p class="font-semibold text-sm" style="text-align: center;">No Records Found</p>
-                    </div>
-                    </div>
-                </div>
+    <div class="cd-sermon-list">
+        <a v-for="sermon in sermons" :key="sermon.id" :href="url+'/admin/sermon/show/'+sermon.sermons_id" class="cd-sermon-row">
+            <img :src="sermon.cover_image || url+'/images/sermon-placeholder.png'" alt="" @error="$event.target.src=url+'/images/igm-church-logo.svg'">
+            <span><strong>{{ sermon.title || 'Sermon' }}</strong><small><i class="far fa-calendar"></i>{{ sermon.sermon_date }} <b>·</b> {{ sermon.fullname || 'IGM Church' }}</small></span>
+            <i class="fas fa-arrow-up-right-from-square cd-sermon-arrow"></i>
+        </a>
+        <div v-if="sermons.length === 0" class="cd-component-empty"><span><i class="fas fa-book-open"></i></span><strong>No sermons published</strong><small>New messages will appear here.</small></div>
+    </div>
 
 </template>
 

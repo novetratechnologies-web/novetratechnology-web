@@ -119,12 +119,6 @@ function liftPrayer(prayerId, btn) {
                 updateCount(prayerId, 'total',     bd.total);
             }
 
-            // Fade out after 2 s, stay hidden until next interaction
-            setTimeout(function () {
-                btn.style.transition = 'opacity 1s ease-out';
-                btn.style.opacity    = '0';
-            }, 2000);
-
         } else if (status === 403 || data.code === 'DUPLICATE_PARTICIPATION') {
             // Already prayed
             setLiftBtnState(btn, 'already');

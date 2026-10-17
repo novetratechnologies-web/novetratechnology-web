@@ -7,9 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Church Membership Pro') }}</title>
+    <title>{{ config('app.name', 'IGM Church') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('uploads/brand/igm-church-favicon.png') }}?v=2">
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    @stack('styles')
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <!-- g-captcha -->
 </head>
@@ -22,8 +24,7 @@
                     @yield('content')
                 </div>
                 <p class="text-xs text-white text-opacity-60 py-4">
-                    Powered by <a href="https://churchcms.app" target="_blank" rel="noopener noreferrer"
-                        class="underline text-white text-opacity-80 hover:text-opacity-100">ChurchCMS</a>
+                    <span class="text-white text-opacity-80">IGM Church</span>
                 </p>
             </div>
         </main>

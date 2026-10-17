@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
  
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Hash;
@@ -26,27 +25,19 @@ class ChangePasswordRequest extends FormRequest
      * @return array
      */
     public function rules()
-    {      
-        Validator::extend('checkpassword', function ($attribute, $value, $parameters, $validator) 
-        {
-            $user = User::find(Auth::id());
-
-            $hashedPassword = $user->password;
-
-            if($user->password!='') 
-            {
-                if(Hash::check(request('oldpassword'),$hashedPassword)) 
-                {
-                    return TRUE;
-                } 
-                return FALSE;
-            }
-        }); 
-
+    {
         return [
-            'oldpassword' => 'required|checkpassword', 
-            'newpassword' => 'required|min:8', 
-            'confirmpassword' => 'required|same:newpassword'              
+            'oldpassword' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    $user = User::find(Auth::id());
+                    if (! $user || ! $user->password || ! Hash::check($value, $user->password)) {
+                        $fail(__('userprofile.oldpassword_err'));
+                    }
+                },
+            ],
+            'newpassword' => ['required', 'string', 'min:8', 'different:oldpassword'],
+            'confirmpassword' => ['required', 'same:newpassword'],
         ];
     }
 
@@ -60,9 +51,10 @@ class ChangePasswordRequest extends FormRequest
 
         return [
             'oldpassword.required' =>__('userprofile.oldpassword'), 
-            'oldpassword.checkpassword' => __('userprofile.oldpassword_err'), 
+            'oldpassword.checkpassword' => __('userprofile.oldpassword_err'),
             'newpassword.required' =>__('userprofile.newpassword'),
-            'newpassword.min:8' =>__('userprofile.newpassword_min'),
+            'newpassword.min' => __('userprofile.newpassword_min'),
+            'newpassword.different' => 'Choose a new password that differs from your current password.',
             'confirmpassword.required' =>__('userprofile.confirmpassword'),
             'confirmpassword.same' =>__('userprofile.same_confirmpassword'),              
         ];

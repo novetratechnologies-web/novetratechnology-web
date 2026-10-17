@@ -54,7 +54,7 @@
                                         <div class="mb-3" style="width:360px; height:90px;">
                                             @if(\Config::get('settings.logo'))
                                             <img id="church_logo_preview"
-                                                src="{{ \Storage::url(config('settings.logo')) }}"
+                                                src="{{ app(\App\Support\PublicFileUrl::class)->resolve(config('settings.logo')) }}"
                                                 style="width:360px;height:90px;"
                                                 class="object-contain rounded border border-gray-200 bg-gray-50">
                                             @else
@@ -88,7 +88,7 @@
                                                 @if(\Config::get('settings.favicon'))
                                                 <img id="favicon_preview"
 
-                                                    src="{{ \Storage::url(config('settings.favicon')) }}"
+                                                    src="{{ app(\App\Support\PublicFileUrl::class)->resolve(config('settings.favicon')) }}"
                                                     style="width:64px;height:64px;"
                                                     class="object-contain rounded border border-gray-200 bg-gray-50 p-1">
                                                 @else

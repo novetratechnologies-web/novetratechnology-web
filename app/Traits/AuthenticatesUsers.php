@@ -134,13 +134,9 @@ trait AuthenticatesUsers
             return false;
         }
 
-        return match (true) {
-            $user->usergroup_id == 1                                                               => true,
-            $user->usergroup_id == 3 && optional($user->userprofile)->membership_type === 'member' => true,
-            $user->usergroup_id == 4                                                               => true,
-            $user->usergroup_id == 5                                                               => \Config::get('settings.login_status') == 1,
-            default                                                                                => false,
-        };
+        // Staff authenticate through the dedicated administration login.
+        return (int) $user->usergroup_id === 5
+            && \Config::get('settings.login_status') == 1;
     }
 
     /**

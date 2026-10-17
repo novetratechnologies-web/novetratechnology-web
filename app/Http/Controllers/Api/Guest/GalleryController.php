@@ -7,6 +7,7 @@ use App\Http\Resources\API\Guest\ShowPhotos as ShowPhotosResource;
 use App\Http\Controllers\Controller;
 use App\Models\Gallery;
 use App\Models\Photos;
+use App\Support\BranchFeed;
 
 class GalleryController extends Controller
 {
@@ -14,7 +15,9 @@ class GalleryController extends Controller
     
 	public function index($church_id)
     {
-        $gallery = Gallery::where('church_id',$church_id)->paginate(10);
+		$query = Gallery::where('church_id', $church_id);
+        app(BranchFeed::class)->apply($query, app(BranchFeed::class)->currentId((int) $church_id));
+        $gallery = $query->paginate(10);
 
         $gallery = ShowGalleryResource::collection($gallery);
         
@@ -23,7 +26,11 @@ class GalleryController extends Controller
 
     public function show($church_id,$gallery_id)
     {
-        $photos = Photos::with('gallery')->where([['gallery_id',$gallery_id],['church_id',$church_id]])->paginate(10);
+		$branchId = app(BranchFeed::class)->currentId((int) $church_id);
+        $galleryQuery = Gallery::where([['id', $gallery_id], ['church_id', $church_id]]);
+        app(BranchFeed::class)->apply($galleryQuery, $branchId);
+        $gallery = $galleryQuery->firstOrFail();
+        $photos = Photos::with('gallery')->where([['gallery_id',$gallery->id],['church_id',$church_id]])->paginate(10);
 
         $photos = ShowPhotosResource::collection($photos);
 

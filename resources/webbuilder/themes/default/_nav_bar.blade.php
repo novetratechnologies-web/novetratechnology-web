@@ -1,193 +1,128 @@
-<nav class="bg-white shadow-sm sticky top-0 z-50" x-data="{ open: false, profileOpen: false }">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+<header id="igm-site-header" x-data="{ open: false, profileOpen: false, moreOpen: false }" @keydown.escape.window="open = false; profileOpen = false; moreOpen = false">
+    <nav id="igm-site-nav" aria-label="Main navigation">
+        <div class="igm-nav-inner">
+            <div class="igm-brand">
+                @include('theme::_logo')
+            </div>
 
-        <div class="flex-shrink-0">
-            @include('theme::_logo')
-        </div>
-
-        <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
-            <a href="{{ route('web.home') }}" class="hover:text-indigo-600">Home</a>
-            <a href="{{ route('web.pages') }}" class="hover:text-indigo-600">About</a>
-            <a href="{{ route('web.posts') }}" class="hover:text-indigo-600">Blog</a>
-            <a href="{{ route('web.events') }}" class="hover:text-indigo-600">Events</a>
-            <a href="{{ route('web.gallery') }}" class="hover:text-indigo-600">Gallery</a>
-            <a href="{{ route('web.sermons') }}" class="hover:text-indigo-600">Sermons</a>
-            <a href="{{ route('web.bulletins') }}" class="hover:text-indigo-600">Bulletins</a>
-            <a href="{{ route('web.faq') }}" class="hover:text-indigo-600">FAQ</a>
-            <a href="{{ route('web.prayer') }}" class="hover:text-indigo-600">Prayer</a>
-            <a href="{{ route('web.help') }}" class="hover:text-indigo-600">Help</a>
-            <a href="{{ route('member.donate') }}" class="hover:text-indigo-600">Donation</a>
-            <a href="{{ route('web.contact') }}" class="hover:text-indigo-600">Contact</a>
-        </div>
-
-        <div class="flex items-center gap-3">
-
-            @auth
-            @php $isGuest = optional(auth()->user()->userprofile)->membership_type === 'guest'; @endphp
-            {{-- Avatar + dropdown --}}
-            <div class="relative hidden md:block">
-                <button @click="profileOpen = !profileOpen" class="flex items-center gap-2 focus:outline-none group">
-                    @if(optional(auth()->user()->userprofile)->avatar)
-                    <img src="{{ auth()->user()->userprofile->AvatarPath }}"
-                        class="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-300 group-hover:ring-indigo-500 transition">
-                    @else
-                    <div class="w-9 h-9 rounded-full bg-indigo-100 ring-2 ring-indigo-300 group-hover:ring-indigo-500 transition flex items-center justify-center">
-                        <span class="text-indigo-700 font-semibold text-sm">
-                            {{ strtoupper(substr(optional(auth()->user()->userprofile)->firstname ?? auth()->user()->name, 0, 1)) }}
-                        </span>
+            <div class="igm-nav-links" id="igm-primary-navigation">
+                <a href="{{ route('web.home') }}" @if(request()->routeIs('web.home')) aria-current="page" @endif>Home</a>
+                <a href="{{ route('web.about') }}" @if(request()->routeIs('web.about')) aria-current="page" @endif>About us</a>
+                <a href="{{ route('web.ministries') }}" @if(request()->routeIs('web.ministries')) aria-current="page" @endif>Ministries</a>
+                <a href="{{ route('web.events') }}" @if(request()->routeIs('web.events', 'web.event')) aria-current="page" @endif>Events</a>
+                <a href="{{ route('web.sermons') }}" @if(request()->routeIs('web.sermons', 'web.sermon')) aria-current="page" @endif>Sermons</a>
+                <a href="{{ route('web.gallery') }}" @if(request()->routeIs('web.gallery', 'web.gallery.show')) aria-current="page" @endif>Gallery</a>
+                <a href="{{ route('web.posts') }}" @if(request()->routeIs('web.posts', 'web.post')) aria-current="page" @endif>Blog</a>
+                <a href="{{ route('web.contact') }}" @if(request()->routeIs('web.contact')) aria-current="page" @endif>Contact</a>
+                <div class="igm-nav-more" @click.outside="moreOpen = false">
+                    <button type="button" @click="moreOpen = !moreOpen" :aria-expanded="moreOpen" aria-haspopup="true" @if(request()->routeIs('web.live', 'web.prayer', 'web.bulletins', 'web.faq', 'web.help')) aria-current="page" @endif>
+                        More <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="igm-more-menu" x-show="moreOpen" x-transition x-cloak>
+                        <a href="{{ route('web.live') }}">Watch live</a>
+                        <a href="{{ route('web.prayer') }}">Prayer</a>
+                        <a href="{{ route('web.bulletins') }}">Bulletins</a>
+                        <a href="{{ route('web.faq') }}">Frequently asked questions</a>
+                        <a href="{{ route('web.help') }}">Get help</a>
                     </div>
-                    @endif
-                    <svg class="w-4 h-4 text-gray-400 transition-transform" :class="profileOpen ? 'rotate-180' : ''"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+                </div>
+            </div>
 
-                <div x-show="profileOpen" @click.outside="profileOpen = false"
-                    x-transition:enter="transition ease-out duration-100"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    x-transition:leave="transition ease-in duration-75"
-                    x-transition:leave-start="opacity-100 scale-100"
-                    x-transition:leave-end="opacity-0 scale-95"
-                    class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
-                    style="display:none;">
-                    <div class="px-4 py-3 border-b border-gray-100">
-                        <p class="text-sm font-semibold text-gray-800 truncate">
-                            {{ optional(auth()->user()->userprofile)->firstname }}
-                            {{ optional(auth()->user()->userprofile)->lastname }}
-                        </p>
-                        <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
-                        @if($isGuest)
-                        <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">Guest</span>
-                        @endif
-                    </div>
-                    @if(!$isGuest)
-                    <a href="{{ url('/member/home') }}"
-                        class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        My Profile
-                    </a>
-                    <a href="{{ url('/member/mygrouplist') }}"
-                        class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline">
+            <div class="igm-nav-actions">
+                <a class="igm-give-link" href="{{ route('donate') }}">Give</a>
 
-                        <svg class="w-4 h-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M17 20h5V18a4 4 0 00-5-3.87M17 20H7m10 0v-2c0-.653-.126-1.276-.356-1.848M7 20H2v-2a4 4 0 015-3.87m0 0a5.002 5.002 0 019.712 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-
-                        My Group List
-                    </a>
-                    <a href="{{ route('member.donate') }}"
-                        class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline">
-                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        Donate
-                    </a>
-                    <a href="{{ url('/member/change-password') }}"
-                        class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Change Password
-                    </a>
-                    @endif
-                    <form method="POST" action="{{ $isGuest ? route('web.guest.logout') : route('logout') }}">
-                        @csrf
-                        <button type="submit"
-                            class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            Logout
+                @auth
+                    @php
+                        $navUser = auth()->user();
+                        $isStaff = in_array((int) $navUser->usergroup_id, [1, 2, 3, 4], true);
+                        $isGuest = optional($navUser->userprofile)->membership_type === 'guest';
+                        $displayName = trim((optional($navUser->userprofile)->firstname ?? '') . ' ' . (optional($navUser->userprofile)->lastname ?? '')) ?: $navUser->name;
+                    @endphp
+                    <div class="igm-profile-wrap">
+                        <button class="igm-profile-button" type="button" @click="profileOpen = !profileOpen" :aria-expanded="profileOpen" aria-haspopup="true">
+                            @if(optional($navUser->userprofile)->avatar)
+                                <img src="{{ $navUser->userprofile->AvatarPath }}" alt="" class="igm-avatar">
+                            @else
+                                <span class="igm-avatar igm-avatar-initial" aria-hidden="true">{{ strtoupper(substr($displayName, 0, 1)) }}</span>
+                            @endif
+                            <span class="igm-profile-name">{{ \Illuminate\Support\Str::limit($displayName, 18) }}</span>
+                            <svg class="igm-chevron" :class="profileOpen ? 'is-open' : ''" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
-                    </form>
-                </div>
-            </div>
-            @else
-            {{-- Unauthenticated: Register + Login --}}
-            <div class="hidden md:flex items-center gap-2">
-                <a href="{{ route('web.guest.register') }}"
-                    class="px-4 py-2 border border-indigo-300 text-indigo-700 text-sm font-medium rounded-md hover:bg-indigo-50">
-                    Register
-                </a>
-                <a href="{{ route('web.guest.login') }}"
-                    class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                    Login
-                </a>
-            </div>
-            @endauth
 
-            {{-- Mobile hamburger --}}
-            <button @click="open = !open"
-                class="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-gray-100 focus:outline-none"
-                :aria-expanded="open">
-                <svg x-show="!open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <svg x-show="open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+                        <div class="igm-profile-menu" x-show="profileOpen" x-transition @click.outside="profileOpen = false" x-cloak>
+                            <div class="igm-profile-summary"><strong>{{ $displayName }}</strong><span>{{ $navUser->email }}</span><small>{{ $isStaff ? 'Church administration' : ($isGuest ? 'Guest account' : 'Church member') }}</small></div>
+                            @if($isStaff)
+                                <a class="igm-account-link" href="{{ route('dashboard') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 13h7V4H4v9Zm9 7h7v-9h-7v9ZM4 20h7v-5H4v5Zm9-11h7V4h-7v5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>Administration portal</a>
+                                <a class="igm-account-link" href="{{ url('/admin/editprofile') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>Admin profile</a>
+                            @else
+                                <span class="igm-profile-menu-label">YOUR CHURCH ACCOUNT</span>
+                                <a class="igm-account-link" href="{{ route('member.home') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>My profile</a>
+                                <a class="igm-account-link" href="{{ route('member.home') }}#my-church"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6m-2-17V1m-3 4h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>My church</a>
+                                <a class="igm-account-link" href="{{ route('member.mygrouplist') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>My communities</a>
+                                <a class="igm-account-link" href="{{ url('/member/home#membership-card') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="11" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 16a3 3 0 0 1 6 0m3-5h3m-3 3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>Membership card</a>
+                                <span class="igm-profile-menu-label">SETTINGS &amp; TOOLS</span>
+                                <a class="igm-account-link" href="{{ route('communication-preferences.edit') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="6" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="18" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/></svg></span>Communication settings</a>
+                                <a class="igm-account-link" href="{{ route('member.change-password') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>Change password</a>
+                                <a class="igm-account-link" href="{{ route('member.donate') }}"><span class="igm-account-link-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>Give to the church</a>
+                            @endif
+                            <form method="POST" action="{{ $isStaff ? route('admin.logout') : ($isGuest ? route('web.guest.logout') : route('logout')) }}">
+                                @csrf
+                                <button type="submit">Sign out</button>
+                            </form>
+                        </div>
+                    </div>
+                @else
+                    <a class="igm-login-link" href="{{ route('web.guest.login') }}">Log in</a>
+                    <a class="igm-register-link" href="{{ route('web.guest.register') }}">Join us</a>
+                @endauth
 
+                <button class="igm-menu-toggle" type="button" @click="open = !open" :aria-expanded="open" aria-controls="igm-mobile-navigation" :aria-label="open ? 'Close navigation menu' : 'Open navigation menu'">
+                    <svg x-show="!open" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    <svg x-show="open" x-cloak viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+            </div>
         </div>
-    </div>
 
-    {{-- Mobile drawer --}}
-    <div x-show="open" x-collapse class="md:hidden border-t border-gray-100 bg-white">
-        <div class="px-4 py-3 space-y-1 text-sm font-medium text-gray-600">
-            <a href="{{ route('web.home') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Home</a>
-            <a href="{{ route('web.pages') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">About</a>
-            <a href="{{ route('web.posts') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Blog</a>
-            <a href="{{ route('web.events') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Events</a>
-            <a href="{{ route('web.gallery') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Gallery</a>
-            <a href="{{ route('web.sermons') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Sermons</a>
-            <a href="{{ route('web.bulletins') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Bulletins</a>
-            <a href="{{ route('web.faq') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">FAQ</a>
-            <a href="{{ route('web.prayer') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Prayer</a>
-            <a href="{{ route('web.help') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Help</a>
-            <a href="{{ route('web.contact') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Contact</a>
-
-            @auth
-            @php $isGuestMobile = optional(auth()->user()->userprofile)->membership_type === 'guest'; @endphp
-            <div class="border-t border-gray-100 pt-2 mt-2 space-y-1">
-                <div class="px-3 py-2">
-                    <p class="text-xs font-semibold text-gray-800">
-                        {{ optional(auth()->user()->userprofile)->firstname }}
-                        {{ optional(auth()->user()->userprofile)->lastname }}
-                    </p>
-                    <p class="text-xs text-gray-400">{{ auth()->user()->email }}</p>
-                    @if($isGuestMobile)
-                    <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">Guest</span>
+        <div class="igm-mobile-menu" id="igm-mobile-navigation" x-show="open" x-collapse x-cloak>
+            <div class="igm-mobile-links">
+                <a href="{{ route('web.home') }}" @click="open = false" @if(request()->routeIs('web.home')) aria-current="page" @endif>Home</a>
+                <a href="{{ route('web.about') }}" @click="open = false" @if(request()->routeIs('web.about')) aria-current="page" @endif>About us</a>
+                <a href="{{ route('web.ministries') }}" @click="open = false" @if(request()->routeIs('web.ministries')) aria-current="page" @endif>Ministries</a>
+                <a href="{{ route('web.events') }}" @click="open = false" @if(request()->routeIs('web.events', 'web.event')) aria-current="page" @endif>Events</a>
+                <a href="{{ route('web.sermons') }}" @click="open = false" @if(request()->routeIs('web.sermons', 'web.sermon')) aria-current="page" @endif>Sermons</a>
+                <a href="{{ route('web.live') }}" @click="open = false" @if(request()->routeIs('web.live')) aria-current="page" @endif>Watch live</a>
+                <a href="{{ route('web.gallery') }}" @click="open = false" @if(request()->routeIs('web.gallery', 'web.gallery.show')) aria-current="page" @endif>Gallery</a>
+                <a href="{{ route('web.posts') }}" @click="open = false" @if(request()->routeIs('web.posts', 'web.post')) aria-current="page" @endif>Blog</a>
+                <a href="{{ route('web.contact') }}" @click="open = false" @if(request()->routeIs('web.contact')) aria-current="page" @endif>Contact</a>
+                <a href="{{ route('web.prayer') }}" @click="open = false" @if(request()->routeIs('web.prayer')) aria-current="page" @endif>Prayer</a>
+                <a href="{{ route('web.bulletins') }}" @click="open = false" @if(request()->routeIs('web.bulletins')) aria-current="page" @endif>Bulletins</a>
+                <a href="{{ route('web.faq') }}" @click="open = false" @if(request()->routeIs('web.faq')) aria-current="page" @endif>FAQs</a>
+                <a href="{{ route('web.help') }}" @click="open = false" @if(request()->routeIs('web.help')) aria-current="page" @endif>Get help</a>
+            </div>
+            <div class="igm-mobile-actions">
+                <a class="igm-give-link" href="{{ route('donate') }}" @click="open = false">Give</a>
+                @auth
+                    @if($isStaff)
+                        <a href="{{ route('dashboard') }}" @click="open = false">Administration portal</a>
+                        <a href="{{ url('/admin/editprofile') }}" @click="open = false">Admin profile</a>
+                    @else
+                        <a href="{{ route('member.home') }}" @click="open = false">My profile</a>
+                        <a href="{{ route('member.home') }}#my-church" @click="open = false">My church</a>
+                        <a href="{{ route('member.mygrouplist') }}" @click="open = false">My communities</a>
+                        <a href="{{ url('/member/home#membership-card') }}" @click="open = false">Membership card</a>
+                        <a href="{{ route('communication-preferences.edit') }}" @click="open = false">Communication settings</a>
+                        <a href="{{ route('member.change-password') }}" @click="open = false">Change password</a>
+                        <a href="{{ route('member.donate') }}" @click="open = false">Give to the church</a>
                     @endif
-                </div>
-                @if(!$isGuestMobile)
-                <a href="{{ url('/member/home') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">My Profile</a>
-                <a href="{{ url('/member/change-password') }}" class="block px-3 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600">Change Password</a>
-                @endif
-                <form method="POST" action="{{ $isGuestMobile ? route('web.guest.logout') : route('logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full text-left px-3 py-2 rounded-md text-red-600 hover:bg-red-50">Logout</button>
-                </form>
+                    <form method="POST" action="{{ $isStaff ? route('admin.logout') : ($isGuest ? route('web.guest.logout') : route('logout')) }}">
+                        @csrf
+                        <button type="submit">Sign out</button>
+                    </form>
+                @else
+                    <a href="{{ route('web.guest.login') }}" @click="open = false">Log in</a>
+                    <a href="{{ route('web.guest.register') }}" @click="open = false">Join us</a>
+                @endauth
             </div>
-            @else
-            <div class="border-t border-gray-100 pt-2 mt-2 space-y-1">
-                <a href="{{ route('web.guest.register') }}" class="block px-3 py-2 rounded-md border border-indigo-300 text-indigo-700 text-center hover:bg-indigo-50">Register</a>
-                <a href="{{ route('web.guest.login') }}" class="block px-3 py-2 rounded-md bg-indigo-600 text-white text-center hover:bg-indigo-700">Login</a>
-            </div>
-            @endauth
         </div>
-    </div>
-</nav>
+    </nav>
+</header>

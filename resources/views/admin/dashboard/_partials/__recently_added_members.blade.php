@@ -1,31 +1,15 @@
-<div>
-    <div>
-        <h1 class="text-sm text-gray-800 uppercase font-semibold mb-2">Recently Added Members
-        </h1>
+<section class="cd-component">
+    <header class="cd-component-heading"><div><span class="cd-component-icon cd-icon-teal"><i class="fas fa-user-plus"></i></span><div><h3>Recently added</h3><p>New people in your community</p></div></div><a href="{{ url('/admin/members') }}" aria-label="Open members"><i class="fas fa-arrow-right"></i></a></header>
+    <div class="cd-member-list">
+        @forelse($dashboard['recentMember'] as $recentMembers)
+            @php $memberName = $recentMembers->FullName ?: ($recentMembers->name ?: 'Member'); @endphp
+            <a class="cd-member-row" href="{{ url('/admin/member/show/' . $recentMembers->name) }}">
+                <img src="{{ $recentMembers->userprofile?->AvatarPath ?: url('uploads/user/avatar/default-user.jpg') }}" alt="" onerror="this.onerror=null;this.src='{{ url('uploads/user/avatar/default-user.jpg') }}'">
+                <span class="cd-member-name"><strong>{{ ucwords($memberName) }}</strong><small>{{ $recentMembers->userprofile?->city?->name ?: 'New member' }}</small></span>
+                <time datetime="{{ $recentMembers->created_at?->toDateString() }}">{{ $recentMembers->created_at?->format('M j') }}</time>
+            </a>
+        @empty
+            <div class="cd-component-empty"><span><i class="fas fa-user-group"></i></span><strong>No new members yet</strong><small>New registrations will appear here.</small></div>
+        @endforelse
     </div>
-    <div class="bg-white shadow rounded px-3 py-1 dashboard-content">
-        @if (count($dashboard['recentMember']) > 0)
-            @foreach ($dashboard['recentMember'] as $recentMembers)
-                <div class="flex py-2 items-center">
-                    <div class="w-1/5">
-                        <img src="{{ $recentMembers->userprofile->AvatarPath }}" class="w-8 h-8 rounded-full">
-                    </div>
-                    <div class="mx-2 text-gray-700 w-4/5 flex justify-between items-center">
-                        <p class="font-semibold text-sm">
-                            <a
-                                href="{{ url('/admin/member/show/' . $recentMembers->name) }}">{{ ucwords($recentMembers->FullName) }}</a>
-                        </p>
-                        <p class="text-gray-600 text-xs">
-                            {{ date('M-d', strtotime($recentMembers->created_at)) }}
-                        </p>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div class="flex py-2 items-center">
-                <p class="font-semibold text-sm w-full" style="text-align: center;">No Records
-                    Found</p>
-            </div>
-        @endif
-    </div>
-</div>
+</section>

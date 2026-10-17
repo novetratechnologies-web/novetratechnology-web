@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Resources\API\Country as CountryResource;
-use App\Http\Resources\API\State as StateResource;
-use App\Http\Resources\API\City as CityResource;
 use App\Http\Requests\ChangePasswordRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use App\Models\Userprofile;
 use App\Traits\LogActivity;
@@ -39,15 +37,53 @@ class UserProfileController extends Controller
     public function getavatar()
     {
         $userprofile = Userprofile::where('user_id', Auth::id())->first();
-        $array=[];
 
-        if(Auth::user())
-        {
-            $array['avatar']    =   $userprofile->AvatarPath;
-            $array['id']        =   $userprofile->id;
+        return [
+            'avatar' => $userprofile?->AvatarPath ?: asset('uploads/user/avatar/default-user.jpg'),
+            'id' => $userprofile?->id,
+        ];
+    }
+
+    private function getOrCreateCurrentProfile(): Userprofile
+    {
+        $userprofile = Userprofile::where('user_id', Auth::id())->first();
+        if ($userprofile) {
+            return $userprofile;
         }
 
-        return $array;
+        $userprofile = new Userprofile();
+        $userprofile->user_id = Auth::id();
+        $userprofile->church_id = Auth::user()?->church_id;
+        $userprofile->gender = null;
+        $userprofile->save();
+
+        return $userprofile;
+    }
+
+    public function states($countryId)
+    {
+        $states = State::query()
+            ->where('country_id', $countryId)
+            ->where('status', '1')
+            ->orderBy('name')
+            ->get(['id', 'country_id', 'name'])
+            ->map(fn ($state) => ['id' => $state->id, 'country_id' => $state->country_id, 'name' => $state->name])
+            ->values();
+
+        return response()->json($states);
+    }
+
+    public function cities($stateId)
+    {
+        $cities = City::query()
+            ->where('state_id', $stateId)
+            ->where('status', '1')
+            ->orderBy('name')
+            ->get(['id', 'state_id', 'name'])
+            ->map(fn ($city) => ['id' => $city->id, 'state_id' => $city->state_id, 'name' => $city->name])
+            ->values();
+
+        return response()->json($cities);
     }
 
     public function changeavatar(Request $request)
@@ -64,41 +100,46 @@ class UserProfileController extends Controller
      */
     public function updatechangeavatar(Request $request)
     {
-        try
-        {
-            $user = User::where('id', Auth::id())->first();
-            $userprofile = Userprofile::where('user_id', Auth::id())->first();
-            $path=$this->uploadFile('uploads/avatars', $request->avatar);
-            if($path!='')
-            {
-                $userprofile->avatar = $path ;
-                $userprofile->save();
-                \Session::put('successmessage',__('admin_userprofile.update_avatar'));
-                $res['message']=__('admin_userprofile.update_avatar');
-                $res['avatar']=$this->getFilePath($path);
-            }
-            else
-            {
-                $userprofile->avatar ='uploads/user/avatar/default-user.jpg';
-                $userprofile->save();
-                \Session::put('failmessage',__('admin_userprofile.failed_avatar'));
-                $res['message']=__('admin_userprofile.failed_avatar');
+        $validated = $request->validate([
+            'avatar' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $userprofile = $this->getOrCreateCurrentProfile();
+
+        try {
+            $path = \Storage::disk('public')->putFile('uploads/avatars', $validated['avatar']);
+            if (! $path) {
+                throw new \RuntimeException('The avatar file was not written to public storage.');
             }
 
-            $ip= $this->getRequestIP();
+            $userprofile->avatar = $path;
+            $userprofile->save();
+
+            try {
                 $this->doActivityLog(
-                $userprofile,
-                Auth::user(),
-                ['ip' => $ip, 'details' => $_SERVER['HTTP_USER_AGENT'] ],
-                LOGNAME_CHANGE_AVATAR,
-                'Changed Avatar'
-            );
-            return $res;
-        }
-        catch(Exception $e)
-        {
-            Log::info($e->getMessage());
+                    $userprofile,
+                    Auth::user(),
+                    ['ip' => $this->getRequestIP(), 'details' => $request->userAgent()],
+                    LOGNAME_CHANGE_AVATAR,
+                    'Changed Avatar'
+                );
+            } catch (Exception $logException) {
+                Log::warning('Avatar updated but its activity log could not be written.', ['user_id' => Auth::id(), 'exception' => $logException->getMessage()]);
+            }
 
+            $response = [
+                'message' => __('admin_userprofile.update_avatar'),
+                'avatar' => $this->getFilePath($path),
+            ];
+            \Session::put('successmessage', $response['message']);
+
+            return response()->json($response);
+        } catch (Exception $exception) {
+            Log::error('Admin profile photo update failed.', ['user_id' => Auth::id(), 'exception' => $exception->getMessage()]);
+
+            return response()->json([
+                'message' => 'The photo could not be saved. Please try again.',
+            ], 500);
         }
     }
 
@@ -116,34 +157,31 @@ class UserProfileController extends Controller
      */
     public function updateChangePassword(ChangePasswordRequest $request)
     {
-        try
-        {
-            $user = User::find(Auth::id());
-            $hashedPassword = $user->password;
+        try {
+            $user = User::findOrFail(Auth::id());
+            $user->password = Hash::make($request->newpassword);
+            $user->save();
 
-            if($hashedPassword!='')
-            {
-                $user->password = Hash::make($request->newpassword);
-                $user->save();
-
-                $ip= $this->getRequestIP();
+            try {
                 $this->doActivityLog(
                     $user,
                     Auth::user(),
-                    ['ip' => $ip,'details' => $_SERVER['HTTP_USER_AGENT']],
+                    ['ip' => $this->getRequestIP(), 'details' => $request->userAgent()],
                     LOGNAME_CHANGE_PASSWORD,
                     'Changed Profile Password.'
                 );
-
-                $successmessage = $request->session()->flash('successmessage',__('admin_userprofile.password_update'));
+            } catch (Exception $logException) {
+                Log::warning('Password changed but its activity log could not be written.', ['user_id' => Auth::id(), 'exception' => $logException->getMessage()]);
             }
-            $res['message']=__('admin_userprofile.password_update');
-            return $res;
-        }
-        catch(Exception $e)
-        {
-            Log::info($e->getMessage());
 
+            $message = __('admin_userprofile.password_update');
+            $request->session()->flash('successmessage', $message);
+
+            return response()->json(['message' => $message]);
+        } catch (Exception $exception) {
+            Log::error('Admin password update failed.', ['user_id' => Auth::id(), 'exception' => $exception->getMessage()]);
+
+            return response()->json(['message' => 'Your password could not be updated. Please try again.'], 500);
         }
     }
 
@@ -156,14 +194,20 @@ class UserProfileController extends Controller
     {
         $array=[];
 
-        $country = Country::where('status','1')->get();
-        $country = CountryResource::collection($country);
-        $state = State::get();
-        $state = StateResource::collection($state)->groupby('country_id');
-        $city = City::get();
-        $city = CityResource::collection($city)->groupby('state_id');
+        $userprofile = $this->getOrCreateCurrentProfile();
+        $country = Country::query()
+            ->where('status', '1')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($item) => ['id' => $item->id, 'name' => $item->name])
+            ->values();
 
-        $userprofile = Userprofile::with('country','state','city')->where('user_id', Auth::id())->first();
+        $states = $userprofile->country_id
+            ? State::query()->where('country_id', $userprofile->country_id)->where('status', '1')->orderBy('name')->get(['id', 'country_id', 'name'])->map(fn ($item) => ['id' => $item->id, 'country_id' => $item->country_id, 'name' => $item->name])->values()
+            : collect();
+        $cities = $userprofile->state_id
+            ? City::query()->where('state_id', $userprofile->state_id)->where('status', '1')->orderBy('name')->get(['id', 'state_id', 'name'])->map(fn ($item) => ['id' => $item->id, 'state_id' => $item->state_id, 'name' => $item->name])->values()
+            : collect();
 
         if($userprofile->firstname === null)
         {
@@ -233,49 +277,58 @@ class UserProfileController extends Controller
         $array['city_id']       =   $userprofile->city_id;
         $array['pincode']       =   $userprofile->pincode;
         $array['countrylist']   =   $country;
-        $array['statelist']     =   $state;
-        $array['citylist']      =   $city;
+        $array['statelist']     =   $userprofile->country_id ? [$userprofile->country_id => $states] : [];
+        $array['citylist']      =   $userprofile->state_id ? [$userprofile->state_id => $cities] : [];
 
         return $array;
     }
 
     public function update(Request $request)
     {
-      try
-        {
-            $userprofile = Userprofile::where('user_id', Auth::id())->first();
+        $validated = $request->validate([
+            'firstname' => ['nullable', 'string', 'max:255'],
+            'lastname' => ['nullable', 'string', 'max:255'],
+            'birth_firstname' => ['nullable', 'string', 'max:255'],
+            'birth_lastname' => ['nullable', 'string', 'max:255'],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'transgender'])],
+            'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
+            'address' => ['nullable', 'string', 'max:2000'],
+            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'state_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('states', 'id')->where(fn ($query) => $query->where('country_id', $request->input('country_id'))),
+            ],
+            'city_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('cities', 'id')->where(fn ($query) => $query->where('state_id', $request->input('state_id'))),
+            ],
+            'pincode' => ['nullable', 'string', 'max:30'],
+        ]);
 
-            $userprofile->firstname         = $request->firstname;
-            $userprofile->lastname          = $request->lastname;
-            $userprofile->birth_firstname   = $request->birth_firstname;
-            $userprofile->birth_lastname    = $request->birth_lastname;
-            $userprofile->gender            = $request->gender;
-            $userprofile->date_of_birth     = $request->date_of_birth;
-            $userprofile->address           = $request->address;
-            $userprofile->city_id           = $request->city_id;
-            $userprofile->state_id          = $request->state_id;
-            $userprofile->country_id        = $request->country_id;
-            $userprofile->pincode           = $request->pincode;
-
+        try {
+            $userprofile = $this->getOrCreateCurrentProfile();
+            $userprofile->fill($validated);
             $userprofile->save();
 
-            $ip= $this->getRequestIP();
-            $this->doActivityLog
-            (
-                $userprofile,
-                Auth::user(),
-                ['ip' => $ip,'details' => $_SERVER['HTTP_USER_AGENT']],
-                LOGNAME_EDIT_USERPROFILE,
-                'Changed Profile'
-            );
+            try {
+                $this->doActivityLog(
+                    $userprofile,
+                    Auth::user(),
+                    ['ip' => $this->getRequestIP(), 'details' => $request->userAgent()],
+                    LOGNAME_EDIT_USERPROFILE,
+                    'Changed Profile'
+                );
+            } catch (Exception $logException) {
+                Log::warning('Profile updated but its activity log could not be written.', ['user_id' => Auth::id(), 'exception' => $logException->getMessage()]);
+            }
 
-            $res['message']= "Userprofile updated successfully";
-            return $res;
-        }
-        catch(Exception $e)
-        {
-            Log::info($e->getMessage());
+            return response()->json(['message' => 'Your profile has been updated.']);
+        } catch (Exception $exception) {
+            Log::error('Admin profile update failed.', ['user_id' => Auth::id(), 'exception' => $exception->getMessage()]);
 
+            return response()->json(['message' => 'Your profile could not be saved. Please try again.'], 500);
         }
     }
 }

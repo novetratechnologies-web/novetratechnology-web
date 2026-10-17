@@ -53,15 +53,10 @@ class ImportMemberController extends Controller
     {
         //
         try {
-            Excel::import(new UsersImport, $request->file('import_file'));
-            $count = \Session::get('count');
-
-            /*  if($count != 0)
-            {
-                return back()->with('failmessage','You can add only '.$count.' Members');
-            }*/
-
-            $insertedcount = \Session::get('insertedcount');
+            $import = new UsersImport();
+            Excel::import($import, $request->file('import_file'));
+            $insertedcount = $import->insertedCount();
+            $skippedcount = $import->skippedCount();
 
             if ($insertedcount > 0) {
                 $message = ('Member Details Imported Successfully');
@@ -74,12 +69,12 @@ class ImportMemberController extends Controller
                     LOGNAME_IMPORT_MEMBER,
                     $message
                 );
-                return back()->with('successmessage', $insertedcount . ' Records Inserted successfully.');
-            } else {
-                return back()->with('failmessage', 'No Records Inserted.');
+                return back()->with('successmessage', $insertedcount . ' records imported; ' . $skippedcount . ' rows skipped.');
             }
+            return back()->with('failmessage', 'No records were imported. ' . $skippedcount . ' rows were skipped because required data was missing, the mobile number already exists in this church, or the row could not be saved.');
         } catch (Exception $e) {
             Log::info($e->getMessage());
+            return back()->with('failmessage', 'The CSV import could not be completed. Check the file format and try again.');
         }
     }
 
@@ -116,7 +111,7 @@ class ImportMemberController extends Controller
                 'Delete this entire row before importing'
             ]);
 
-            $csv->output('Church Social Add Member Format' . date('_d-m-Y_H:i') . '.csv');
+            $csv->output('IGM Church Add Member Format' . date('_d-m-Y_H:i') . '.csv');
 
             $message = 'Downloaded Sample Format File Successfully';
 

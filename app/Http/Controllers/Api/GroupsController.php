@@ -11,6 +11,7 @@ use App\Models\User;
 use OpenApi\Attributes as OA;
 use App\Models\GroupPost;
 use App\Http\Resources\API\GroupPost as GroupPostResource;
+use App\Support\BranchFeed;
 
 /**
  * GroupsController
@@ -43,7 +44,10 @@ class GroupsController extends Controller
     {
         //
         $user = User::where('name', Auth::user()->name)->first();
-        $grouplinks = GroupLink::where('user_id', $user->id)->get();
+        $branchId = app(BranchFeed::class)->currentId((int) Auth::user()->church_id);
+        $grouplinks = GroupLink::where('user_id', $user->id)->whereHas('group', function ($query) use ($branchId) {
+            $query->where(function ($branchQuery) use ($branchId) { $branchQuery->whereNull('branch_id')->when($branchId, fn ($q) => $q->orWhere('branch_id', $branchId)); });
+        })->get();
 
         $group = GroupLinkResource::collection($grouplinks);
 
@@ -101,6 +105,8 @@ class GroupsController extends Controller
     {
 
 
+        $branchId = app(BranchFeed::class)->currentId((int) Auth::user()->church_id);
+        abort_unless(\App\Models\Group::where('id', $group_id)->where('church_id', Auth::user()->church_id)->where(function ($query) use ($branchId) { $query->whereNull('branch_id')->when($branchId, fn ($q) => $q->orWhere('branch_id', $branchId)); })->exists(), 404);
         $messages = GroupPost::where([['group_id', $group_id], ['church_id', Auth::user()->church_id]])->orderBy('id', 'DESC')->paginate(15);
 
 

@@ -11,8 +11,6 @@
 <meta property="og:image" content="@yield('og_image')">
 @endif
 
-@if(!empty($_churchdetail['favicon']))
-<link rel="icon" href="{{ \Storage::url($_churchdetail['favicon']) }}">
-@endif
+<link rel="icon" type="image/png" href="{{ asset('uploads/brand/igm-church-favicon.png') }}?v=2">
 
 @stack('meta')

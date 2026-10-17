@@ -53,7 +53,7 @@ class RoomInvitationMail extends Mailable implements ShouldQueue
                    ->with([
                        'content' => $message,
                        ])
-                      ->withSwiftMessage(function ($message) use($email) {
+                      ->withSymfonyMessage(function ($message) use($email) {
                                  $message->getHeaders()
                       ->addTextHeader('user_email', $email);
         });

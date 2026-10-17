@@ -125,8 +125,10 @@ export default {
 
       })
       .catch(error => {
-
-        this.errors = ['Upload failed'];
+        const responseErrors = error && error.response && error.response.data && error.response.data.errors;
+        this.errors = responseErrors
+          ? Object.values(responseErrors).reduce((all, messages) => all.concat(messages), [])
+          : [(error && error.response && error.response.data && error.response.data.message) || 'Upload failed. Check the image type and try again.'];
         this.isLoading = false;
 
       });

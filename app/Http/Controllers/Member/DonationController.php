@@ -22,7 +22,7 @@ class DonationController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['mpesaCallback']);
     }
 
     public function index()
@@ -48,7 +48,7 @@ class DonationController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'gateway'       => 'required|string',
+            'gateway'       => 'required|string|in:paystack,flutterwave,stripe',
             'reference'     => 'required|string',
             'payaccount_id' => 'required|integer',
             'amount'        => 'required|numeric|min:1',
@@ -56,36 +56,38 @@ class DonationController extends Controller
             'note'          => 'nullable|string|max:500',
         ]);
 
-        $payaccount = Payaccount::where('id', $request->payaccount_id)
+        $payaccount = Payaccount::with('paymentgateway')->where('id', $request->payaccount_id)
             ->where('church_id', Auth::user()->church_id)
             ->where('status', 1)
             ->first();
 
-        if (!$payaccount) {
+        if (!$payaccount || ($payaccount->paymentgateway->gatewayname ?? null) !== $request->gateway) {
             return back()->with('error', 'Invalid payment account.');
         }
 
         $verified = false;
+        $defaultCurrencies = ['paystack' => 'NGN', 'flutterwave' => 'NGN', 'stripe' => 'USD'];
+        $currency = $payaccount->param5 ?: Paymentgateway::getCurrency($request->gateway, $defaultCurrencies[$request->gateway] ?? 'USD');
 
         try {
             switch ($request->gateway) {
                 case 'paystack':
                     $svc      = new PaystackService($payaccount->param2 ?? '', $payaccount->param1 ?? '');
                     $result   = $svc->verify($request->reference);
-                    $verified = $svc->isSuccessful($result);
+                    $verified = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 case 'flutterwave':
                     $svc      = new FlutterwaveService($payaccount->param2 ?? '');
                     $result   = $svc->verify($request->reference);
-                    $verified = $svc->isSuccessful($result);
+                    $verified = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 case 'stripe':
                     $secretKey = $payaccount->param2 ?: config('paymentgateway.stripe.secret_key', '');
                     $svc       = new StripeService($secretKey);
                     $result    = $svc->verify($request->reference);
-                    $verified  = $svc->isSuccessful($result);
+                    $verified  = $svc->matchesPayment($result, (float) $request->amount, $currency);
                     break;
 
                 default:
@@ -99,19 +101,23 @@ class DonationController extends Controller
             return back()->with('error', 'Payment verification failed. Please contact support.');
         }
 
-        Donation::create([
-            'church_id'   => Auth::user()->church_id,
-            'user_id'     => Auth::id(),
-            'amount'      => $request->amount,
-            'currency'    => 'USD',
-            'category'    => $request->category ?? 'offering',
-            'method'      => $request->gateway,
-            'gateway_ref' => $request->reference,
-            'status'      => 'completed',
-            'note'        => $request->note,
-            'uuid'        => uniqid(),
-            'donated_at'  => now(),
-        ]);
+        try {
+            app(\App\Services\Payment\VerifiedDonationRecorder::class)->record([
+                'church_id'   => Auth::user()->church_id,
+                'user_id'     => Auth::id(),
+                'amount'      => $request->amount,
+                'currency'    => strtoupper($currency),
+                'category'    => $request->category ?? 'offering',
+                'method'      => $request->gateway,
+                'gateway_ref' => $request->reference,
+                'status'      => 'completed',
+                'note'        => $request->note,
+                'uuid'        => uniqid(),
+                'donated_at'  => now(),
+            ]);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', 'This payment reference is already linked to a different amount or currency. Please contact support.');
+        }
 
         return redirect()->route('member.donate')
             ->with('success', 'Donation successful! Thank you for your generosity.');

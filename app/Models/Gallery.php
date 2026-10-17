@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\Common;
+use App\Traits\AssignContentBranch;
 use App\Models\Photos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -35,6 +36,7 @@ class Gallery extends Model
     use SoftDeletes;
     use Common;
     use HasFactory;
+    use AssignContentBranch;
 
     /**
      * The table associated with the model.
@@ -74,9 +76,6 @@ class Gallery extends Model
     public function getFullPathAttribute()
     {
         if (!$this->path) return '';
-        if (str_starts_with($this->path, 'http://') || str_starts_with($this->path, 'https://')) {
-            return $this->path;
-        }
         return $this->getFilePath($this->path);
     }
 

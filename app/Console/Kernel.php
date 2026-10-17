@@ -40,6 +40,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('church:send-service-reminders')
+                 ->everyMinute()
+                 ->withoutOverlapping();
+
+        $schedule->command('church:send-scheduled-campaigns')
+                 ->everyMinute()
+                 ->withoutOverlapping();
+
         // $schedule->command('inspire')
         //          ->hourly();
 

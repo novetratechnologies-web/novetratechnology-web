@@ -22,8 +22,8 @@ class MustBeChurchAdmin
             return $next($request);
         }
 
-        if (\Auth::user()->usergroup_id == 1) {
-            return redirect('/portal');
+        if (\Auth::user()->usergroup_id == 5) {
+            return redirect('/member/home');
         }
 
         abort(403);

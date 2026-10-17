@@ -26,7 +26,7 @@ class ApkController extends Controller
          $array=[
                 "versionid" => "1.0.2",
                 "versioncode"=> 7,
-                "appname"=> "ChurchCMS"
+                "appname"=> config('app.name', 'IGM Church')
                 ];
 
         return $array;

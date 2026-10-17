@@ -33,6 +33,14 @@ class UserDetail extends JsonResource
 
             'church_name'           => $this->church->name,
 
+            'branch_id'             => $this->branch_id,
+
+            'branch_name'           => $this->branch?->name,
+
+            'branch_address'        => $this->branch?->address,
+
+            'mobile_country_code'   => $this->mobile_country_code,
+
             'user_id'               => $this->id,
 
             'firstname'             => $this->userprofile->firstname ?? '',

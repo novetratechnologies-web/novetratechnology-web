@@ -2,172 +2,92 @@
 
 @section('title', 'My Profile')
 
-@section('content')
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/member-account.css') }}?v=1">
+@endpush
 
+@section('content')
 @php
-$user = auth()->user();
-$profile = optional($user->userprofile);
+    $profile = $user->userprofile;
+    $church = $user->church;
+    $branch = $user->branch;
+    $churchName = $church?->name ?: 'International Gospel Ministries';
+    $branchName = $branch?->name;
+    $churchAddress = trim(strip_tags((string) ($branch?->address ?: $church?->fulladdress() ?: '')));
+    $memberFields = [
+        ['First name', $profile?->firstname],
+        ['Last name', $profile?->lastname],
+        ['Email', $user->email],
+        ['Mobile', $user->mobile_no],
+        ['Gender', $profile?->gender ? ucfirst($profile->gender) : null],
+        ['Date of birth', $profile?->date_of_birth ? date('d M Y', strtotime($profile->date_of_birth)) : null],
+        ['Profession', $profile?->profession ? ucwords(str_replace('_', ' ', $profile->profession)) : null],
+        ['Address', $profile?->address],
+        ['City', $profile?->city?->name],
+        ['Region', $profile?->state?->name],
+        ['Country', $profile?->country?->name],
+    ];
+    $membershipFields = [
+        ['Membership type', $profile?->membership_type ? ucfirst($profile->membership_type) : 'Member'],
+        ['Member since', $profile?->membership_start_date ? date('d M Y', strtotime($profile->membership_start_date)) : null],
+        ['Membership status', $profile?->status ? ucfirst($profile->status) : 'Active'],
+        ['Baptism', $profile?->was_baptized ? ucfirst($profile->was_baptized) : null],
+    ];
+    if ($profile?->was_baptized === 'yes') {
+        $membershipFields[] = ['Baptism date', $profile->baptism_date ? date('d M Y', strtotime($profile->baptism_date)) : null];
+    }
 @endphp
 
-{{-- ── Page Header ────────────────────────────────────────────────── --}}
-<div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">My Profile</h1>
-    <p class="text-sm text-gray-500 mt-1">Your personal information and membership details</p>
+<div class="member-account-page">
+    @include('member._account_hero', ['user' => $user])
+
+    <nav class="member-quick-actions" aria-label="Member tools">
+        <a href="{{ route('member.mygrouplist') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span><strong>My communities</strong><small>Groups and connections</small></span><b>›</b></a>
+        <a href="{{ route('member.donate') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span><strong>Give</strong><small>Support the ministry</small></span><b>›</b></a>
+        <a href="{{ route('communication-preferences.edit') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="6" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.7"/></svg></span><span><strong>Communication settings</strong><small>Choose how we contact you</small></span><b>›</b></a>
+        <a href="{{ route('member.change-password') }}"><span class="member-tool-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span><strong>Password &amp; security</strong><small>Protect your account</small></span><b>›</b></a>
+    </nav>
+
+    <div class="member-dashboard-grid">
+        <section class="member-panel member-profile-panel" id="member-profile">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR ACCOUNT</span><h2>Personal details</h2><p>Information connected to your member profile.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div>
+            <dl class="member-detail-list">
+                @foreach($memberFields as [$label, $value])
+                    <div><dt>{{ $label }}</dt><dd>{{ $value ?: 'Not added' }}</dd></div>
+                @endforeach
+            </dl>
+        </section>
+
+        <section class="member-panel member-church-panel" id="my-church">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR IGM COMMUNITY</span><h2>My church</h2><p>Your church and branch connection.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11m-7-17V1m-3 4h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+            <div class="member-church-identity"><span class="member-church-emblem"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11m-7-17V1m-3 4h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>{{ $churchName }}</strong><span>{{ $branchName ?: 'Branch not assigned' }}</span></div></div>
+            <div class="member-church-facts">
+                <div><span>Branch</span><strong>{{ $branchName ?: 'Not assigned' }}</strong></div>
+                <div><span>Address</span><strong>{{ $churchAddress ?: 'Contact your church office for location details.' }}</strong></div>
+                @if($branch?->phone)<div><span>Branch phone</span><strong>{{ $branch->phone }}</strong></div>@endif
+            </div>
+            <a class="member-panel-action" href="{{ route('web.contact') }}">Contact IGM <span>→</span></a>
+        </section>
+
+        <section class="member-panel member-membership-panel">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR JOURNEY</span><h2>Membership</h2><p>Your current church membership information.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v18M5 8h14M7 8l-4 9h8L7 8Zm10 0-4 9h8l-4-9ZM5 21h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+            <dl class="member-detail-list">
+                @foreach($membershipFields as [$label, $value])
+                    <div><dt>{{ $label }}</dt><dd>{{ $value ?: '—' }}</dd></div>
+                @endforeach
+            </dl>
+            <div class="member-membership-actions"><a href="{{ route('member.home') }}#membership-card">View membership card <span>→</span></a><a href="{{ url('/member/print/'.$user->name) }}" target="_blank" rel="noopener">Print card <span>↗</span></a></div>
+        </section>
+
+        <section class="member-panel member-family-panel">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">FAMILY CONNECTIONS</span><h2>Family tree</h2><p>See the family connections linked to your account.</p></div><span class="member-panel-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0M5 5.5a3.5 3.5 0 0 0-1 6.7M2 20a5 5 0 0 1 3.5-4.8m13.5-9.7a3.5 3.5 0 0 1 1 6.7M22 20a5 5 0 0 0-3.5-4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></div>
+            <div class="member-family-tree-wrap"><member-family-tree name="{{ $user->name }}"></member-family-tree></div>
+        </section>
+
+        <section class="member-panel member-card-panel" id="membership-card">
+            <div class="member-panel-heading"><div><span class="member-panel-kicker">YOUR CHURCH ID</span><h2>Membership card</h2><p>Keep your membership details close at hand.</p></div><a class="member-print-button" href="{{ url('/member/print/'.$user->name) }}" target="_blank" rel="noopener">Print card <span>↗</span></a></div>
+            <div class="member-id-card-preview">@include('member.idcard.idcard')</div>
+        </section>
+    </div>
 </div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-    {{-- ── Col 1: Avatar + Church ───────────────────────────────────── --}}
-    <div class="lg:col-span-1 space-y-5">
-
-        {{-- Avatar Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center">
-            @if($profile->avatar)
-            <img src="{{ $profile->AvatarPath }}"
-                class="w-12 h-12 rounded-full object-cover ring-4 ring-indigo-100">
-            @else
-            <div class="w-12 h-12 rounded-full bg-indigo-100 ring-4 ring-indigo-200 flex items-center justify-center">
-                <span class="text-5xl font-bold text-indigo-600">
-                    {{ strtoupper(substr($profile->firstname ?? $user->name, 0, 1)) }}
-                </span>
-            </div>
-            @endif
-
-            <h2 class="mt-4 text-lg font-semibold text-gray-800">
-                {{ $profile->firstname }} {{ $profile->lastname }}
-            </h2>
-            <p class="text-sm text-gray-500">{{ $user->email }}</p>
-
-            <span class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                {{ $profile->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
-                <span class="w-1.5 h-1.5 rounded-full mr-1.5
-                    {{ $profile->status === 'active' ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                {{ ucfirst($profile->status ?? 'active') }}
-            </span>
-
-            @if($profile->membership_type)
-            <span class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
-                {{ ucfirst($profile->membership_type) }}
-            </span>
-            @endif
-        </div>
-
-        {{-- Church Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Church</h3>
-            <div class="flex items-start space-x-3">
-                <div class="mt-0.5 w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                </div>
-                <div>
-                    <p class="font-medium text-gray-800 capitalize">{{ optional($user->church)->name }}</p>
-                    <p class="text-xs text-gray-500 mt-0.5">{!! optional($user->church)->fulladdress() !!}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide ">Id Card</h3>&nbsp; <a href="{{ url('/member/print/'.$user->name) }}"
-                    class="text-xs font-semibold text-white bg-blue-500 px-3 py-1 rounded cursor-pointer">
-                    Print
-                </a>
-            </div>
-            <div class="flex items-start space-x-3">
-
-                @include('member.idcard.idcard')
-
-            </div>
-        </div>
-
-    </div>
-
-    {{-- ── Col 2: Personal / Address / Membership ───────────────────── --}}
-    <div class="lg:col-span-1 space-y-5">
-
-        {{-- Personal Details --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Personal Details</h3>
-            <dl class="space-y-0 divide-y divide-gray-50">
-                @php
-                $fields = [
-                ['label' => 'First Name', 'value' => $profile->firstname],
-                ['label' => 'Last Name', 'value' => $profile->lastname],
-                ['label' => 'Gender', 'value' => ucfirst($profile->gender ?? '')],
-                ['label' => 'Date of Birth', 'value' => $profile->date_of_birth ? date('d M Y', strtotime($profile->date_of_birth)) : null],
-                ['label' => 'Mobile', 'value' => $user->mobile_no],
-                ['label' => 'Email', 'value' => $user->email],
-                ['label' => 'Profession', 'value' => ucwords(str_replace('_', ' ', $profile->profession ?? ''))],
-                ['label' => 'Marriage Status', 'value' => ucwords(str_replace('_', ' ', $profile->marriage_status ?? ''))],
-                ];
-                @endphp
-                @foreach($fields as $field)
-                <div class="flex items-center justify-between py-3">
-                    <dt class="text-xs font-medium text-gray-400 w-1/2">{{ $field['label'] }}</dt>
-                    <dd class="text-sm font-semibold text-gray-800 text-right w-1/2 truncate">{{ $field['value'] ?: '—' }}</dd>
-                </div>
-                @endforeach
-            </dl>
-        </div>
-
-        {{-- Address --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Address</h3>
-            <dl class="space-y-0 divide-y divide-gray-50">
-                @php
-                $address = [
-                ['label' => 'Street', 'value' => $profile->address],
-                ['label' => 'City', 'value' => optional($profile->city)->name],
-                ['label' => 'State', 'value' => optional($profile->state)->name],
-                ['label' => 'Country', 'value' => optional($profile->country)->name],
-                ['label' => 'Pincode', 'value' => $profile->pincode],
-                ];
-                @endphp
-                @foreach($address as $row)
-                <div class="flex items-center justify-between py-3">
-                    <dt class="text-xs font-medium text-gray-400 w-1/2">{{ $row['label'] }}</dt>
-                    <dd class="text-sm font-semibold text-gray-800 text-right w-1/2 truncate">{{ $row['value'] ?: '—' }}</dd>
-                </div>
-                @endforeach
-            </dl>
-        </div>
-
-        {{-- Membership --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Membership</h3>
-            <dl class="space-y-0 divide-y divide-gray-50">
-                @php
-                $membership = [
-                ['label' => 'Type', 'value' => ucfirst($profile->membership_type ?? '')],
-                ['label' => 'Member Since', 'value' => $profile->membership_start_date ? date('d M Y', strtotime($profile->membership_start_date)) : null],
-                ['label' => 'Was Baptized', 'value' => ucfirst($profile->was_baptized ?? '')],
-                ];
-                if ($profile->was_baptized === 'yes') {
-                $membership[] = ['label' => 'Baptism Date', 'value' => $profile->baptism_date ? date('d M Y', strtotime($profile->baptism_date)) : null];
-                }
-                @endphp
-                @foreach($membership as $row)
-                <div class="flex items-center justify-between py-3">
-                    <dt class="text-xs font-medium text-gray-400 w-1/2">{{ $row['label'] }}</dt>
-                    <dd class="text-sm font-semibold text-gray-800 text-right w-1/2">{{ $row['value'] ?: '—' }}</dd>
-                </div>
-                @endforeach
-            </dl>
-        </div>
-
-    </div>
-
-    {{-- ── Col 3: Family Tree ────────────────────────────────────────── --}}
-    <div class="lg:col-span-1">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 h-full">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Family Tree</h3>
-            <member-family-tree name="{{ $user->name }}"></member-family-tree>
-        </div>
-    </div>
-
-</div>
-
 @endsection

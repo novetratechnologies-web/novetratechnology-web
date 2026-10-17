@@ -88,7 +88,7 @@
                         <a href="{{ url('/admin/member/show/'.$attendee->member->name) }}"
                             class="flex items-center gap-3 p-3 rounded border border-gray-100 hover:bg-gray-50 transition">
                             @if($attendee->userprofile && $attendee->userprofile->avatar)
-                            <img src="{{ \Storage::disk('public')->url($attendee->userprofile->avatar) }}"
+                            <img src="{{ $attendee->userprofile->AvatarPath }}"
                                 class="w-7 h-7 rounded-full object-cover">
                             @else
                             <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">

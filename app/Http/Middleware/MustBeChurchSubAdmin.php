@@ -25,9 +25,9 @@ class MustBeChurchSubAdmin
             return redirect('/admin/dashboard');
         }
       
-        if(\Auth::user()->usergroup_id == 1)
+        if(\Auth::user()->usergroup_id == 5)
         {
-            return redirect('/portal');
+            return redirect('/member/home');
         }
 
         abort(403);

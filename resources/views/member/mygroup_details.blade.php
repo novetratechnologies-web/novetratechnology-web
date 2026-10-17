@@ -8,7 +8,7 @@
 $group = $grouplist->group;
 $totalMembers = App\Models\GroupLink::where('group_id', $grouplist->group_id)->count();
 $isAdmin = $grouplist->role === 'group_admin';
-$coverImage = $group->cover_image ? url('storage/'.$group->cover_image) : null;
+$coverImage = $group->CoverImagePath ?: null;
 
 if(request('user_id')){
 $sendUrl =='';
@@ -429,13 +429,13 @@ $authProfile = auth()->user()->userprofile;
                     {{-- Full-width image --}}
                     @if($msg->attachments && $msg->attachment_type === 'image')
                     <div class="w-full bg-gray-100">
-                        <img src="{{ asset('storage/' . $msg->attachments) }}"
+                        <img src="{{ app(\App\Support\PublicFileUrl::class)->resolve($msg->attachments) }}"
                             alt="Post image"
                             class="w-full max-h-[480px] object-cover cursor-pointer hover:opacity-95 transition">
                     </div>
                     @elseif($msg->attachments && $msg->attachment_type === 'video')
                     <div class="w-full bg-black">
-                        <video src="{{ asset('storage/' . $msg->attachments) }}"
+                        <video src="{{ app(\App\Support\PublicFileUrl::class)->resolve($msg->attachments) }}"
                             controls class="w-full max-h-[480px]"></video>
                     </div>
                     @endif

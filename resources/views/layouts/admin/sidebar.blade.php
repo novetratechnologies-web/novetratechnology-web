@@ -1,10 +1,10 @@
-<div class="w-full lg:w-56 md:w-48 admin-sidebar">
-    <div class="min-h-full header-wrapper-b hidden lg:block md:block ">
-        @include('layouts.admin.menu')
-    </div>
+<div class="admin-sidebar hidden shrink-0 md:block">
+    @include('layouts.admin.menu')
 </div>
-<div id="res_sidebar" class="w-full lg:w-50 md:w-48 hidden lg:hidden md:hidden res_sidebar text-white">
-    <div class="min-h-full header-wrapper-b lg:hidden md:hidden ">
-        @include('layouts.admin.menu')
+
+<div id="res_sidebar" class="res_sidebar hidden" role="dialog" aria-modal="true" aria-label="Mobile admin navigation" onclick="if(event.target===this)toggleAdminMobileNav(true)">
+    <div class="mobile-admin-drawer">
+        <div class="mobile-admin-drawer-head"><span>Navigation</span><button type="button" onclick="toggleAdminMobileNav(true)" aria-label="Close navigation"><i class="fas fa-xmark"></i></button></div>
+        @include('layouts.admin.menu', ['mobileNavigation' => true])
     </div>
 </div>

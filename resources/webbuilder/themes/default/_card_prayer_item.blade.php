@@ -1,71 +1,28 @@
-    <div class="bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-indigo-500 mb-6">
+@php
+    $alreadyLifted = in_array((int) $item->id, $liftedPrayerIds ?? [], true);
+@endphp
 
-        {{-- Card Header --}}
-        <div class="bg-gradient-to-r from-indigo-100 to-purple-100 px-6 py-4 border-b-2 border-indigo-200">
-            <div class="flex justify-between items-start gap-3">
-                <div>
-                    <h3 class="font-bold text-gray-900">Posted by: {{ $item->submitter_name }}</h3>
-                    <p class="text-xs text-gray-500">Posted {{ $item->created_at->format('M j, Y') }}</p>
-                </div>
-                @if($item->category)
-                <span class="flex-shrink-0 px-3 py-1 rounded-full text-sm font-semibold"
-                    style="background-color: {{ $item->category->gradient_start }}; color: {{ $item->category->display_color }}">
-                    {{ $item->category->emoji }} {{ $item->category->name }}
-                </span>
-                @endif
-            </div>
+<article class="prayer-card" aria-label="Prayer request shared {{ $item->created_at->diffForHumans() }}">
+    <div class="prayer-card-top">
+        <div class="prayer-card-meta">
+            @if($item->category)
+                <span class="prayer-category"><span aria-hidden="true">{{ $item->category->emoji }}</span>{{ $item->category->name }}</span>
+            @else
+                <span class="prayer-category">Prayer request</span>
+            @endif
+            <time datetime="{{ $item->created_at->toIso8601String() }}">{{ $item->created_at->format('M j, Y') }}</time>
         </div>
-
-        {{-- Card Body --}}
-        <div class="p-6">
-            <p class="text-gray-700 leading-relaxed text-sm mb-5">"{{ $item->text }}"</p>
-
-            {{-- Expiry bar --}}
-            @if($item->expires_at)
-            <div class="mb-4 p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-gray-900">⏰ Expires in:</span>
-                    <span class="text-lg font-bold text-orange-600">{{ $item->days_remaining }} days</span>
-                </div>
-                <div class="w-full bg-gray-300 rounded-full h-2 mt-2">
-                    <div class="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full"
-                        style="width: {{ $item->expiry_percentage }}%"></div>
-                </div>
-            </div>
+        @if($item->pinned_at)<span class="prayer-pin"><span aria-hidden="true">✦</span> Featured</span>@endif
+    </div>
+    <div class="prayer-card-body">
+        <blockquote>{{ $item->text }}</blockquote>
+        <div class="prayer-card-bottom">
+            <div class="prayer-together"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span><strong data-prayer-total="{{ $item->id }}">{{ number_format($item->total_participant_count) }}</strong> {{ Illuminate\Support\Str::plural('person', $item->total_participant_count) }} praying</span></div>
+            @if($alreadyLifted)
+                <button class="lift-prayer-btn" type="button" disabled aria-disabled="true" style="background:#eef4ef;color:#2f7049;cursor:default">✓ You’re praying</button>
+            @else
+                @include('theme::_lift_prayer_btn', ['item' => $item])
             @endif
-
-            {{-- Participant counts --}}
-            <div class="mb-4 grid grid-cols-3 gap-3">
-                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200 text-center">
-                    <p class="text-xs text-gray-600 font-semibold">Members</p>
-                    <p class="text-2xl font-bold text-indigo-600" data-prayer-member="{{ $item->id }}">{{ $item->member_count }}</p>
-                </div>
-                <div class="bg-purple-50 p-3 rounded-lg border border-purple-200 text-center">
-                    <p class="text-xs text-gray-600 font-semibold">Guests</p>
-                    <p class="text-2xl font-bold text-purple-600" data-prayer-guest="{{ $item->id }}">{{ $item->guest_count }}</p>
-                </div>
-                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-center">
-                    <p class="text-xs text-gray-600 font-semibold">Anonymous</p>
-                    <p class="text-2xl font-bold text-gray-600" data-prayer-anonymous="{{ $item->id }}">{{ $item->anonymous_count }}</p>
-                </div>
-            </div>
-
-            <p class="text-xs text-gray-600 text-center mb-4">
-                <strong>Total:</strong> <span data-prayer-total="{{ $item->id }}">{{ $item->total_participant_count }}</span> people praying
-            </p>
-
-            @php
-
-            $userId = Auth::id();
-
-            $hasLifted = App\Models\PrayerParticipant::where('prayer_id', $item->id)
-            ->where('user_id', $userId)
-            ->exists();
-
-            @endphp
-            @if($hasLifted==0)
-            @include('theme::_lift_prayer_btn', ['item' => $item])
-            @endif
-
         </div>
     </div>
+</article>

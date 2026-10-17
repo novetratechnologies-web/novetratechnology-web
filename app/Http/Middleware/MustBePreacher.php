@@ -25,9 +25,9 @@ class MustBePreacher
             return redirect('/admin/dashboard');
         }
       
-        if(\Auth::user()->usergroup_id == 1)
+        if(in_array((int) \Auth::user()->usergroup_id, [1, 2, 3, 4], true))
         {
-            return redirect('/portal');
+            return redirect('/admin/dashboard');
         }
 
         

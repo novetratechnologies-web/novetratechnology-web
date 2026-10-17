@@ -102,6 +102,9 @@
                             </div>
                         </form>
                     @endif
+                    <p class="mt-4 text-center text-xs text-gray-400">
+                        Staff member? <a href="{{ route('admin.login') }}" class="font-semibold text-teal-200 hover:underline">Use the administration sign-in</a>.
+                    </p>
                 </div>
             </div>
         </div>
